@@ -2,7 +2,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Mail } from "lucide-react";
 import { CAPABILITIES, CONTACT, LEGAL, SITE } from "@/config/site";
-import { Logo } from "@/components/site/Logo";
 
 const COMPANY = [
   { label: "About", to: "/about" },
@@ -17,9 +16,10 @@ export const Footer = () => (
   <footer className="site-footer" data-testid="site-footer">
     <div className="container site-footer__grid">
       <div className="site-footer__brand">
-        <div className="site-footer__logo-chip">
-          <Logo testId="footer-logo-link" eager={false} />
-        </div>
+        <Link to="/" className="site-footer__logo" aria-label="210Codelabs Corporation — Home" data-testid="footer-logo-link">
+          {/* Metallic-white rendition of the original logo for the navy footer (shape derived pixel-for-pixel from the supplied PNG). */}
+          <img src="/assets/brand-logo-footer-metallic.png" alt={SITE.logoAlt} width="500" height="114" loading="lazy" decoding="async" />
+        </Link>
         <p className="site-footer__desc">{SITE.description}</p>
         <Link to="/contact" className="btn btn-primary btn-pill btn-sm" data-testid="footer-contact-cta-button">
           Start a Conversation <ArrowRight aria-hidden="true" />

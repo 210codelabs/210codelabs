@@ -578,8 +578,9 @@ main:focus { outline: none; }
   gap: clamp(24px, 3vw, 48px);
   padding-top: clamp(48px, 5vw, 72px); padding-bottom: clamp(36px, 4vw, 56px);
 }
-.site-footer__logo-chip { display: inline-flex; background: #fff; border-radius: 10px; padding: 8px 12px; margin-bottom: 18px; }
-.site-footer__logo-chip .brand-logo { --logo-w: 220px; }
+.site-footer__logo { display: inline-block; margin-bottom: 20px; border-radius: 4px; }
+.site-footer__logo img { width: 240px; height: auto; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); transition: filter 0.3s var(--ease); }
+.site-footer__logo:hover img { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)) brightness(1.08); }
 .site-footer__desc { margin: 0 0 22px; font-size: 14px; line-height: 1.65; max-width: 34em; color: #b7c5de; }
 .site-footer__title { margin: 6px 0 16px; font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #fff; }
 .site-footer__col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
@@ -879,5 +880,5 @@ main:focus { outline: none; }
   .capabilities__grid { grid-template-columns: 1fr; }
   .cap-card { grid-template-columns: auto 1fr; padding: 14px 40px 14px 14px; min-height: 0; }
   .site-footer__grid { grid-template-columns: 1fr; }
-  .site-footer__logo-chip .brand-logo { --logo-w: 200px; }
+  .site-footer__logo img { width: 210px; }
 }
