@@ -240,6 +240,33 @@ async def dataforseo_serp(keyword: str) -> dict:
         return {}
 
 
+async def dataforseo_rank_lookup(keyword: str, domain: str, depth: int = 100) -> Optional[dict]:
+    """Scan the top `depth` organic results and return the first position that matches `domain`.
+    Returns {"position": int, "url": str, "title": str} or None if not found."""
+    login, pwd = os.environ.get("DATAFORSEO_LOGIN"), os.environ.get("DATAFORSEO_PASSWORD")
+    if not (login and pwd) or not keyword or not domain:
+        return None
+    dom = domain.lower().replace("https://", "").replace("http://", "").split("/")[0].lstrip("www.")
+    try:
+        async with httpx.AsyncClient(timeout=60) as c:
+            r = await c.post("https://api.dataforseo.com/v3/serp/google/organic/live/regular",
+                             auth=(login, pwd),
+                             json=[{"keyword": keyword, "location_code": 2840, "language_code": "en",
+                                     "device": "desktop", "depth": max(10, min(depth, 100))}])
+            res = (r.json().get("tasks") or [{}])[0].get("result") or []
+            items_raw = (res[0].get("items") or []) if res else []
+            for it in items_raw:
+                if it.get("type") != "organic":
+                    continue
+                url = (it.get("url") or "").lower()
+                if dom in url:
+                    return {"position": it.get("rank_absolute"), "url": it.get("url"), "title": it.get("title")}
+            return {"position": None, "url": None, "title": None}
+    except Exception as e:
+        logger.warning("DataForSEO rank lookup failed: %s", e)
+        return None
+
+
 async def research_keywords(db, seeds: Optional[List[str]] = None) -> int:
     settings = await get_settings(db)
     seeds = seeds or settings.get("seeds") or DEFAULT_SEEDS
@@ -700,4 +727,63 @@ def build_router(db, require_admin) -> APIRouter:
         s.pop("_id", None)
         return s
 
+    # ---------- Rank tracking ----------
+    @r.post("/cron/rank-check")
+    async def cron_rank_check(request: Request):
+        import hmac
+        secret = os.environ.get("WEBHOOK_CRON_SECRET", "")
+        auth = request.headers.get("authorization", "")
+        if not secret or not auth.startswith("Bearer ") or not hmac.compare_digest(auth[7:].encode(), secret.encode()):
+            raise HTTPException(401, "Unauthorized")
+        res = await run_rank_check(db)
+        return {"ok": True, **res}
+
+    @r.post("/admin/blog/rank/check")
+    async def rank_check_now(authorization: Optional[str] = Header(default=None)):
+        await require_admin(authorization)
+        return await run_rank_check(db)
+
+    @r.get("/admin/blog/rank")
+    async def rank_overview(authorization: Optional[str] = Header(default=None)):
+        await require_admin(authorization)
+        posts = await db.blog_posts.find({"status": "published"}, {"_id": 0, "id": 1, "slug": 1, "title": 1, "keyword": 1, "published_at": 1}).sort("published_at", -1).to_list(500)
+        out = []
+        for p in posts:
+            history = await db.blog_rank_history.find({"post_id": p["id"]}, {"_id": 0}).sort("checked_at", -1).limit(30).to_list(30)
+            latest = history[0] if history else None
+            prev = history[1] if len(history) > 1 else None
+            delta = None
+            if latest and prev and latest.get("position") and prev.get("position"):
+                delta = prev["position"] - latest["position"]
+            out.append({**p, "latest": latest, "previous": prev, "delta": delta, "history": list(reversed(history))})
+        s = await get_settings(db)
+        return {"items": out, "tracked_domain": s.get("tracked_domain") or "210codelabs.com", "last_run": s.get("rank_last_run")}
+
     return r
+
+
+async def run_rank_check(db) -> dict:
+    """Check Google rank for every published post's focus keyword against the configured domain."""
+    s = await get_settings(db)
+    domain = s.get("tracked_domain") or "210codelabs.com"
+    posts = await db.blog_posts.find({"status": "published"}, {"_id": 0, "id": 1, "slug": 1, "keyword": 1}).to_list(500)
+    checked, found = 0, 0
+    for p in posts:
+        kw = (p.get("keyword") or "").strip()
+        if not kw:
+            continue
+        res = await dataforseo_rank_lookup(kw, domain, depth=100)
+        if res is None:
+            continue
+        checked += 1
+        if res.get("position"):
+            found += 1
+        await db.blog_rank_history.insert_one({
+            "id": str(uuid.uuid4()), "post_id": p["id"], "slug": p["slug"], "keyword": kw,
+            "domain": domain, "position": res.get("position"), "url": res.get("url"),
+            "checked_at": now_iso(),
+        })
+    await db.blog_settings.update_one({"_id": "settings"},
+                                       {"$set": {"rank_last_run": now_iso(), "rank_last_checked": checked, "rank_last_found": found}},
+                                       upsert=True)
+    return {"checked": checked, "found": found, "domain": domain}

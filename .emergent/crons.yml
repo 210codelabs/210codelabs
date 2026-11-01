@@ -14,3 +14,10 @@ crons:
     endpoint: "{{BASE_URL}}/api/cron/lead-digest"
     method: POST
     enabled: true
+  - name: daily-rank-check
+    description: "Checks Google rank for every published blog post's focus keyword via DataForSEO"
+    cron: "0 8 * * *"
+    timezone: "America/Chicago"
+    endpoint: "{{BASE_URL}}/api/cron/rank-check"
+    method: POST
+    enabled: true

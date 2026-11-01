@@ -1,30 +1,14 @@
 [
   {
-    "content": "Replace hero background + left-side fade for readability",
-    "status": "completed"
+    "content": "Back-to-top floating button on all pages",
+    "status": "in_progress"
   },
   {
-    "content": "Admin sidebar logo → light-on-navy variant",
-    "status": "completed"
+    "content": "Rank Tracking — track each published post's focus keyword daily via DataForSEO SERP + Analytics card",
+    "status": "pending"
   },
   {
-    "content": "Footer: toolbox icon linking to /sign-in",
-    "status": "completed"
-  },
-  {
-    "content": "AI Concierge chat: backend endpoint + topic-locked guardrails + trusted-source grounding + schedule/lead actions",
-    "status": "completed"
-  },
-  {
-    "content": "AI Concierge chat UI: homepage replaces form with chat (topics left, chat right)",
-    "status": "completed"
-  },
-  {
-    "content": "DataForSEO wired into blog engine (suggestions, volumes, difficulty, SERP intel)",
-    "status": "completed"
-  },
-  {
-    "content": "Visual + end-to-end verify",
-    "status": "completed"
+    "content": "Qualification Follow-ups — Concierge collects budget / timeline / stack before saving the lead",
+    "status": "pending"
   }
 ]

@@ -1526,3 +1526,25 @@ a.inv-row:hover .inv-row__name { color: var(--cobalt); }
   .concierge__chat { min-height: 500px; max-height: 640px; }
   .concierge-lead .form-grid { grid-template-columns: 1fr; }
 }
+
+/* Back-to-top floating button */
+.back-to-top {
+  position: fixed; right: 20px; bottom: 20px; z-index: 60;
+  width: 44px; height: 44px; border-radius: 999px; border: 0;
+  background: var(--navy); color: #fff; cursor: pointer;
+  display: grid; place-items: center;
+  box-shadow: 0 10px 24px -8px rgba(10, 29, 68, 0.55);
+  opacity: 0; pointer-events: none; transform: translateY(10px);
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease), background-color 0.15s var(--ease);
+}
+.back-to-top svg { width: 18px; height: 18px; }
+.back-to-top.is-visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.back-to-top:hover, .back-to-top:focus-visible { background: var(--cobalt); outline: none; }
+.back-to-top:focus-visible { box-shadow: 0 0 0 3px rgba(20, 80, 216, 0.35); }
+@media (max-width: 640px) { .back-to-top { right: 14px; bottom: 14px; width: 42px; height: 42px; } }
+
+/* Footer address line */
+.site-footer__address { display: inline-flex; gap: 8px; align-items: flex-start; margin-top: 10px; }
+.site-footer__address svg { width: 14px; height: 14px; margin-top: 3px; flex: none; color: rgba(255, 255, 255, 0.55); }
+.site-footer__address address { font-style: normal; font-size: 12.5px; line-height: 1.55; color: rgba(255, 255, 255, 0.72); }
+.site-footer__address address strong { color: #fff; font-weight: 700; }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Mail } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
 import { CONTACT } from "@/config/site";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { SocialLinks } from "@/components/site/SocialLinks";
@@ -20,6 +20,23 @@ export const ContactSection = ({ defaultInterest = "", headingLevel = 2, idPrefi
               <span className="contact__email-value">{CONTACT.email}</span>
             </span>
           </a>
+          {CONTACT.address && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${CONTACT.address.street}, ${CONTACT.address.city}, ${CONTACT.address.region} ${CONTACT.address.postalCode}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="contact__email"
+              data-testid="contact-section-address-link"
+            >
+              <span className="contact__email-icon"><MapPin aria-hidden="true" /></span>
+              <span>
+                <span className="contact__email-label">Headquarters</span>
+                <address className="contact__email-value">
+                  {CONTACT.address.company}, {CONTACT.address.street}, {CONTACT.address.unit}, {CONTACT.address.city}, {CONTACT.address.region} {CONTACT.address.postalCode}, {CONTACT.address.country}
+                </address>
+              </span>
+            </a>
+          )}
           <div className="contact__social">
             <p className="contact__email-label">Follow us</p>
             <SocialLinks testPrefix="contact-social" />

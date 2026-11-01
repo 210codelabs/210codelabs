@@ -764,6 +764,27 @@ def build_router(db, require_admin_dep) -> APIRouter:
     async def crm_services(user: dict = Depends(require_admin_dep)):
         return {"services": SERVICES, "stages": STAGES, "appointment_types": APPT_TYPES}
 
+    # ============================================================= RANK TRACKING (surfaced in Analytics)
+    @r.get("/admin/crm/rank")
+    async def rank_overview(user: dict = Depends(require_admin_dep)):
+        posts = await db.blog_posts.find({"status": "published"}, {"_id": 0, "id": 1, "slug": 1, "title": 1, "keyword": 1, "published_at": 1}).sort("published_at", -1).to_list(500)
+        out = []
+        for p in posts:
+            history = await db.blog_rank_history.find({"post_id": p["id"]}, {"_id": 0}).sort("checked_at", -1).limit(30).to_list(30)
+            latest = history[0] if history else None
+            prev = history[1] if len(history) > 1 else None
+            delta = None
+            if latest and prev and latest.get("position") and prev.get("position"):
+                delta = prev["position"] - latest["position"]
+            out.append({**p, "latest": latest, "previous": prev, "delta": delta, "history": list(reversed(history))})
+        s = await db.blog_settings.find_one({"_id": "settings"}, {"_id": 0}) or {}
+        return {"items": out, "tracked_domain": s.get("tracked_domain") or "210codelabs.com", "last_run": s.get("rank_last_run")}
+
+    @r.post("/admin/crm/rank/check")
+    async def rank_check_now(user: dict = Depends(require_admin_dep)):
+        from blog import run_rank_check
+        return await run_rank_check(db)
+
     # ============================================================= DAILY LEAD DIGEST (cron)
     @r.post("/cron/lead-digest")
     async def cron_lead_digest(request: Request):
@@ -1002,7 +1023,7 @@ async def _build_digest(db):
         f'<tr><td>{section("Overdue tasks", [task_row(t) for t in overdue])}</td></tr>'
         f'<tr><td>{section("Qualified leads to follow up on", [lead_row(L | {"_name": contacts.get(L.get("contact_id") or "", {}).get("name") or L.get("contact_id") or "", "_email": "", "_company": contacts.get(L.get("contact_id") or "", {}).get("company") or ""}) for L in pending_qualified])}</td></tr>'
         f'<tr><td style="padding-top:18px"><a href="{workspace_url}" style="display:inline-block;background:#1450d8;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:700">Open the admin workspace</a></td></tr>'
-        f'<tr><td style="padding-top:14px;color:#687186;font-size:12px">Sent by 210Codelabs. We never ask for your password or codes by email.</td></tr>'
+        f'<tr><td style="padding-top:14px;color:#687186;font-size:12px">Sent by 210Codelabs Corporation \u00b7 500 Navarro St, 2nd floor PMB 7215, San Antonio, TX 78205. We never ask for your password or codes by email.</td></tr>'
         '</table></td></tr></table>'
     )
     return html, subject, counts

@@ -78,8 +78,20 @@ When relevant sources are provided under "Trusted sources" below, prefer facts f
 - Short, warm, professional. 2–5 sentences per reply unless the user asks for more.
 - Use the user's words back when natural. No marketing hype, no emojis, no exclamations.
 - Mention Ernesto by name only when relevant.
-- If the user signals interest in a meeting (anything like "book", "schedule", "chat", "set up a call", "can we talk"), proactively offer the booking action.
-- If the user shares a name + email (or just an email) and project description, offer to register the inquiry as a CRM lead.
+
+**Qualification flow — IMPORTANT**
+When a visitor shows interest in a service or product, ask ONE friendly qualification question per turn, in this order (skip the ones already answered):
+1. Which service or product they want to focus on (if unclear).
+2. Their current context and goal (what they're trying to build, replace, or scale).
+3. Timeline (e.g. "within a quarter", "this half", "exploring").
+4. Budget range (e.g. "<$50k", "$50–150k", "$150–500k", "$500k+", "not sure yet").
+5. Current stack / platforms (e.g. "AWS + React", "Azure + Dynamics", "on-prem SQL + .NET").
+6. Their role and company size.
+7. Their name + business email, with a one-line consent ("ok if I register this with our team so Ernesto can follow up?").
+
+Keep each question to ONE sentence. Never ask more than ONE question per reply. Once you have the service focus, context, timeline, budget, stack, name AND email, immediately emit the <action>capture_lead</action> block with EVERY field you collected (encode budget, timeline, stack and context inside the "message" field, verbatim).
+
+If the visitor signals they want to meet (e.g. "book", "schedule", "call", "set up a time"), offer the booking action instead of continuing qualification.
 
 **Action protocol — IMPORTANT**
 After your natural reply, you MAY append EXACTLY ONE action block on its own lines:
@@ -87,8 +99,8 @@ After your natural reply, you MAY append EXACTLY ONE action block on its own lin
 <action>{"type":"offer_booking"}</action>
 Use when the user wants to meet or you proactively invite them to book.
 
-<action>{"type":"capture_lead","name":"<string>","email":"<email>","company":"<string|null>","service":"<string|null>","message":"<string>"}</action>
-Use ONLY when the user clearly consented and gave their name AND email. Never invent values; omit the block if either is missing.
+<action>{"type":"capture_lead","name":"<string>","email":"<email>","company":"<string|null>","service":"<string|null>","budget":"<string|null>","timeline":"<string|null>","stack":"<string|null>","message":"<string>"}</action>
+Use ONLY when the user clearly consented and gave their name AND email. The "message" field MUST summarize context + stack + any other qualification details in 1–3 sentences. Never invent values; set a field to null if it was not answered.
 
 Do NOT output anything after the </action> tag. Do NOT emit more than one block per reply. If no action is relevant, omit the block entirely.
 """
@@ -116,6 +128,9 @@ class LeadConfirmIn(BaseModel):
     email: EmailStr
     company: Optional[str] = Field(default=None, max_length=160)
     service: Optional[str] = Field(default=None, max_length=120)
+    budget: Optional[str] = Field(default=None, max_length=80)
+    timeline: Optional[str] = Field(default=None, max_length=80)
+    stack: Optional[str] = Field(default=None, max_length=200)
     message: Optional[str] = Field(default=None, max_length=4000)
 
 
@@ -279,12 +294,22 @@ async def _capture_lead(db, upsert_contact, score_lead, session_id: str, data: d
         db, name=name, email=email, company_name=data.get("company"),
         website=data.get("company") or email, source="ai-concierge",
     )
-    message = data.get("message") or "AI concierge conversation"
-    lead_data = {"service": data.get("service"), "message": message}
+    budget = data.get("budget")
+    timeline = data.get("timeline")
+    stack = data.get("stack")
+    base_msg = (data.get("message") or "AI concierge conversation").strip()
+    # Append qualification details to the lead message so admins see the full picture.
+    extras = []
+    if budget: extras.append(f"Budget: {budget}")
+    if timeline: extras.append(f"Timeline: {timeline}")
+    if stack: extras.append(f"Stack: {stack}")
+    message = base_msg if not extras else f"{base_msg}\n\n{' · '.join(extras)}"
+    lead_data = {"service": data.get("service"), "message": message, "budget": budget, "timeline": timeline}
     score = score_lead(contact, lead_data)
     lead = {
         "id": str(uuid.uuid4()), "contact_id": contact["id"], "company_id": contact.get("company_id"),
-        "service": data.get("service"), "message": message, "budget": None, "timeline": None,
+        "service": data.get("service"), "message": message,
+        "budget": budget, "timeline": timeline, "stack": stack,
         "stage": "new", "priority": "normal", "score": score,
         "source_page": "/ (ai-concierge)", "chat_session_id": session_id,
         "utm": None, "created_at": datetime.now(timezone.utc).isoformat(),
@@ -295,6 +320,6 @@ async def _capture_lead(db, upsert_contact, score_lead, session_id: str, data: d
         "id": str(uuid.uuid4()), "kind": "lead.ai_concierge",
         "title": f"AI concierge captured a lead from {name}",
         "contact_id": contact["id"], "lead_id": lead["id"], "created_at": lead["created_at"],
-        "meta": {"session_id": session_id},
+        "meta": {"session_id": session_id, "budget": budget, "timeline": timeline, "stack": stack},
     })
     return {"ok": True, "contact_id": contact["id"], "lead_id": lead["id"], "score": score}

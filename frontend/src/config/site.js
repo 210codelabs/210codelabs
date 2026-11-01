@@ -27,7 +27,16 @@ export const CONTACT = {
       ? null
       : envEndpoint || (BACKEND_URL ? `${BACKEND_URL}/api/contact` : null),
   phone: null, // PLACEHOLDER: pending real phone number from 210Codelabs
-  address: null, // PLACEHOLDER: pending real address from 210Codelabs
+  address: {
+    company: "210Codelabs Corporation",
+    street: "500 Navarro St",
+    unit: "2nd floor PMB 7215",
+    city: "San Antonio",
+    region: "TX",
+    postalCode: "78205",
+    country: "United States",
+    countryCode: "US",
+  },
 };
 
 export const API_BASE = `${BACKEND_URL}/api`;

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Mail, Wrench } from "lucide-react";
+import { ArrowRight, Mail, MapPin, Wrench } from "lucide-react";
 import { CAPABILITIES, CONTACT, LEGAL, SITE } from "@/config/site";
 import { SocialLinks } from "@/components/site/SocialLinks";
 
@@ -62,6 +62,18 @@ export const Footer = () => (
               <Mail aria-hidden="true" /> {CONTACT.email}
             </a>
           </li>
+          {CONTACT.address && (
+            <li className="site-footer__address" data-testid="footer-address">
+              <MapPin aria-hidden="true" />
+              <address>
+                <strong>{CONTACT.address.company}</strong><br />
+                {CONTACT.address.street}<br />
+                {CONTACT.address.unit}<br />
+                {CONTACT.address.city}, {CONTACT.address.region} {CONTACT.address.postalCode}<br />
+                {CONTACT.address.country}
+              </address>
+            </li>
+          )}
         </ul>
       </div>
 

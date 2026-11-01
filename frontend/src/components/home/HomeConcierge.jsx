@@ -17,14 +17,17 @@ async function callApi(path, { method = "POST", body } = {}) {
 }
 
 function LeadForm({ initial, onSubmit, onCancel, status }) {
-  const [form, setForm] = useState({ name: "", email: "", company: "", service: "", message: "", ...(initial || {}) });
+  const [form, setForm] = useState({ name: "", email: "", company: "", service: "", budget: "", timeline: "", stack: "", message: "", ...(initial || {}) });
   return (
     <form className="concierge-lead" onSubmit={(e) => { e.preventDefault(); onSubmit(form); }} data-testid="concierge-lead-form">
       <div className="form-grid">
         <div className="field"><label>Full name</label><input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="concierge-lead-name" /></div>
         <div className="field"><label>Business email</label><input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} data-testid="concierge-lead-email" /></div>
         <div className="field"><label>Company</label><input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} /></div>
-        <div className="field"><label>What should we focus on?</label><input value={form.service} onChange={(e) => setForm({ ...form, service: e.target.value })} /></div>
+        <div className="field"><label>Focus</label><input value={form.service} onChange={(e) => setForm({ ...form, service: e.target.value })} /></div>
+        <div className="field"><label>Budget</label><input value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder="e.g. $50–150k" /></div>
+        <div className="field"><label>Timeline</label><input value={form.timeline} onChange={(e) => setForm({ ...form, timeline: e.target.value })} placeholder="e.g. This quarter" /></div>
+        <div className="field field--full"><label>Current stack</label><input value={form.stack} onChange={(e) => setForm({ ...form, stack: e.target.value })} placeholder="e.g. AWS + React + Postgres" /></div>
       </div>
       <div className="form-actions">
         <button type="submit" className="btn btn-primary btn-pill btn-sm" disabled={status === "saving"} data-testid="concierge-lead-submit">{status === "saving" ? <Loader2 className="spin" aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />} Register my inquiry</button>
@@ -73,7 +76,7 @@ export function HomeConcierge() {
       } else if (resp.action?.type === "capture_lead" && resp.action.executed) {
         setLeadConfirmed(true);
       } else if (resp.action?.type === "capture_lead") {
-        setPendingLead({ name: resp.action.name || "", email: resp.action.email || "", company: resp.action.company || "", service: resp.action.service || "", message: resp.action.message || t });
+        setPendingLead({ name: resp.action.name || "", email: resp.action.email || "", company: resp.action.company || "", service: resp.action.service || "", budget: resp.action.budget || "", timeline: resp.action.timeline || "", stack: resp.action.stack || "", message: resp.action.message || t });
       }
     } catch (e) {
       setMessages((m) => [...m, { id: uid(), role: "assistant", content: "Sorry — I hit a snag. Please try that again, or email info@210codelabs.com." }]);
