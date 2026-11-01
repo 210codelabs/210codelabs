@@ -90,8 +90,17 @@ export const SolutionsStrip = () => (
           <ul>
             {SOLUTIONS.filter((s) => s.track === t.id).map((s) => (
               <li key={s.slug}>
-                <Link to={s.pending ? "/work#ai-products" : `/solutions/${s.slug}`} className="sol-pill" data-testid={`solutions-strip-${s.slug}-link`}>
-                  <span className="sol-pill__name">{s.name}</span>
+                <Link
+                  to={s.pending ? "/work#ai-products" : `/solutions/${s.slug}`}
+                  className={`sol-pill ${s.logo ? "sol-pill--logo" : ""}`}
+                  aria-label={`${s.name} — ${s.pending ? "Coming soon" : s.category}`}
+                  data-testid={`solutions-strip-${s.slug}-link`}
+                >
+                  {s.logo ? (
+                    <img src={s.logo} alt={s.name} className="sol-pill__logo" loading="lazy" decoding="async" />
+                  ) : (
+                    <span className="sol-pill__name">{s.name}</span>
+                  )}
                   <span className="sol-pill__cat">{s.pending ? "Coming soon" : s.category}</span>
                 </Link>
               </li>

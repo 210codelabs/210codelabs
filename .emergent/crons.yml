@@ -1,0 +1,9 @@
+crons:
+  - name: daily-blog-post
+    description: "Writes, SEO-optimizes and publishes (or drafts) one new blog post every morning at 7am Central"
+    cron: "0 7 * * *"
+    timezone: "America/Chicago"
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    endpoint: "{{BASE_URL}}/api/cron/daily-post"
+    method: POST
+    enabled: true

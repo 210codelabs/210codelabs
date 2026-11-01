@@ -8,10 +8,12 @@ import WorkPage from "@/pages/WorkPage";
 import WorkDetailPage from "@/pages/WorkDetailPage";
 import InvestorsPage from "@/pages/InvestorsPage";
 import BlogPage from "@/pages/BlogPage";
+import BlogPostPage from "@/pages/BlogPostPage";
 import ContactPage from "@/pages/ContactPage";
 import LegalPage from "@/pages/LegalPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AdminMessagesPage from "@/pages/AdminMessagesPage";
+import AdminBlogPage from "@/pages/AdminBlogPage";
 import SolutionDetailPage from "@/pages/SolutionDetailPage";
 
 function App() {
@@ -27,11 +29,13 @@ function App() {
           <Route path="solutions/:slug" element={<SolutionDetailPage />} />
           <Route path="investors" element={<InvestorsPage />} />
           <Route path="blog" element={<BlogPage />} />
+          <Route path="blog/:slug" element={<BlogPostPage />} />
           <Route path="contact" element={<ContactPage />} />
           <Route path="legal/:slug" element={<LegalPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
         <Route path="admin/messages" element={<AdminMessagesPage />} />
+        <Route path="admin/blog" element={<AdminBlogPage />} />
       </Routes>
     </BrowserRouter>
   );

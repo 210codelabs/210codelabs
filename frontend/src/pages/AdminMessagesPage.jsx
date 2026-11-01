@@ -9,7 +9,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const TOKEN_KEY = "210cl_admin_token";
+export const TOKEN_KEY = "210cl_admin_token";
 const STATUSES = ["all", "new", "read", "archived"];
 
 const fmt = (iso) => {
@@ -20,7 +20,7 @@ const fmt = (iso) => {
   }
 };
 
-async function api(path, { token, method = "GET", body } = {}) {
+export async function api(path, { token, method = "GET", body } = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -36,7 +36,7 @@ async function api(path, { token, method = "GET", body } = {}) {
   return data;
 }
 
-function Login({ onLogin }) {
+export function Login({ onLogin }) {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -150,7 +150,10 @@ export default function AdminMessagesPage() {
       <header className="admin__bar">
         <div className="admin__bar-inner">
           <Logo testId="admin-bar-logo-link" />
-          <span className="admin__bar-title"><Inbox aria-hidden="true" /> Messages</span>
+          <nav className="admin__tabs" aria-label="Admin sections">
+            <Link to="/admin/messages" className="admin__tab is-active" aria-current="page" data-testid="admin-tab-messages"><Inbox aria-hidden="true" /> Messages</Link>
+            <Link to="/admin/blog" className="admin__tab" data-testid="admin-tab-blog">Blog</Link>
+          </nav>
           <div className="admin__bar-actions">
             <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={load} data-testid="admin-refresh-button"><RefreshCw aria-hidden="true" /> Refresh</button>
             <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={logout} data-testid="admin-logout-button"><LogOut aria-hidden="true" /> Sign out</button>

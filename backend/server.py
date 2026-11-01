@@ -252,6 +252,10 @@ async def delete_message(msg_id: str, authorization: Optional[str] = Header(defa
 
 app.include_router(api)
 
+from blog import build_router as build_blog_router  # noqa: E402
+
+app.include_router(build_blog_router(db, require_admin))
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -266,6 +270,11 @@ async def startup():
     await db.contact_messages.create_index("id", unique=True)
     await db.contact_messages.create_index("created_at")
     await db.admin_sessions.create_index("token", unique=True)
+    await db.blog_posts.create_index("slug", unique=True)
+    await db.blog_posts.create_index([("status", 1), ("published_at", -1)])
+    await db.blog_keywords.create_index("keyword", unique=True)
+    await db.blog_runs.create_index("run_id", unique=True)
+    await db.blog_images.create_index("id", unique=True)
 
 
 @app.on_event("shutdown")

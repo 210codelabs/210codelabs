@@ -43,6 +43,7 @@ export const SOLUTIONS = [
     status: "Live MVP · by invitation",
     url: "https://cousix.210codelabs.com",
     image: "cousix",
+    logo: "/assets/solutions/cousix-logo.webp",
   },
   {
     slug: "articulive",
@@ -62,6 +63,7 @@ export const SOLUTIONS = [
     status: "Live · desktop available",
     url: "https://articulive.com",
     image: "articulive",
+    logo: "/assets/solutions/articulive-logo.webp",
   },
   {
     slug: "aurelo",
@@ -81,6 +83,7 @@ export const SOLUTIONS = [
     status: "Live · free plan & live demo",
     url: "https://aurelocrm.com",
     image: "aurelo",
+    logo: "/assets/solutions/aurelo-logo.webp",
   },
   {
     slug: "terynto",
@@ -94,6 +97,7 @@ export const SOLUTIONS = [
     status: "Details coming soon",
     url: null, // PLACEHOLDER: https://terynto.online — enable once the site is reachable again
     image: null,
+    logo: "/assets/solutions/terynto-logo.webp",
     pending: true,
   },
   {
