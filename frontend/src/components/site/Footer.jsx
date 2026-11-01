@@ -2,9 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Mail } from "lucide-react";
 import { CAPABILITIES, CONTACT, LEGAL, SITE } from "@/config/site";
+import { SocialLinks } from "@/components/site/SocialLinks";
 
 const COMPANY = [
   { label: "About", to: "/about" },
+  { label: "Leadership", to: "/about#leadership" },
   { label: "Our Work", to: "/work" },
   { label: "Blog", to: "/blog" },
   { label: "For Investors", to: "/investors" },
@@ -24,6 +26,7 @@ export const Footer = () => (
         <Link to="/contact" className="btn btn-primary btn-pill btn-sm" data-testid="footer-contact-cta-button">
           Start a Conversation <ArrowRight aria-hidden="true" />
         </Link>
+        <SocialLinks variant="dark" className="site-footer__social" testPrefix="footer-social" />
       </div>
 
       <nav className="site-footer__col" aria-labelledby="footer-company">

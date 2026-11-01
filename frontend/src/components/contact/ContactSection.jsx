@@ -2,6 +2,7 @@ import React from "react";
 import { Mail } from "lucide-react";
 import { CONTACT } from "@/config/site";
 import { ContactForm } from "@/components/contact/ContactForm";
+import { SocialLinks } from "@/components/site/SocialLinks";
 
 export const ContactSection = ({ defaultInterest = "", headingLevel = 2, idPrefix = "home-cf" }) => {
   const H = `h${headingLevel}`;
@@ -19,6 +20,10 @@ export const ContactSection = ({ defaultInterest = "", headingLevel = 2, idPrefi
               <span className="contact__email-value">{CONTACT.email}</span>
             </span>
           </a>
+          <div className="contact__social">
+            <p className="contact__email-label">Follow us</p>
+            <SocialLinks testPrefix="contact-social" />
+          </div>
         </div>
         <div className="contact__card reveal">
           <ContactForm defaultInterest={defaultInterest} idPrefix={idPrefix} />
