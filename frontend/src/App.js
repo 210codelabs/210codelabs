@@ -12,6 +12,7 @@ import ContactPage from "@/pages/ContactPage";
 import LegalPage from "@/pages/LegalPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AdminMessagesPage from "@/pages/AdminMessagesPage";
+import SolutionDetailPage from "@/pages/SolutionDetailPage";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="capabilities" element={<CapabilitiesPage />} />
           <Route path="work" element={<WorkPage />} />
           <Route path="work/:slug" element={<WorkDetailPage />} />
+          <Route path="solutions/:slug" element={<SolutionDetailPage />} />
           <Route path="investors" element={<InvestorsPage />} />
           <Route path="blog" element={<BlogPage />} />
           <Route path="contact" element={<ContactPage />} />

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useSeo } from "@/hooks/useSeo";
 import { CAPABILITIES, CASES } from "@/config/site";
+import { solutionsFor } from "@/config/solutions";
 import { PageHero } from "@/components/site/PageHero";
 import { CapIcon } from "@/components/site/Primitives";
 
@@ -39,6 +40,14 @@ export default function CapabilitiesPage() {
                     <h2 className="cap-row__title">{c.title}</h2>
                     <p className="cap-row__text">{c.text}</p>
                     <p className="cap-row__soon">Detailed service information coming soon.</p>
+                    {solutionsFor(c.slug).length > 0 && (
+                      <p className="cap-row__related cap-row__proven">
+                        Proven in:{" "}
+                        {solutionsFor(c.slug).map((s) => (
+                          <Link key={s.slug} to={`/solutions/${s.slug}`} data-testid={`capability-${c.slug}-solution-${s.slug}-link`}>{s.name}</Link>
+                        ))}
+                      </p>
+                    )}
                     {related.length > 0 && (
                       <p className="cap-row__related">
                         Related work:{" "}
