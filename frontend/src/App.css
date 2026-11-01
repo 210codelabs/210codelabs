@@ -1478,3 +1478,51 @@ a.inv-row:hover .inv-row__name { color: var(--cobalt); }
 .footer-admin-link:hover, .footer-admin-link:focus-visible {
   color: #fff; background: rgba(255, 255, 255, 0.15); transform: translateY(-1px);
 }
+
+/* -------------------------------------------------------------- Homepage AI concierge */
+.concierge { background: linear-gradient(180deg, #f5f9ff 0%, #eaf0fb 100%); }
+.concierge__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 36px; align-items: start; }
+.concierge__topics .section-title--lg { margin: 10px 0 14px; }
+.concierge__topics .muted { max-width: 46ch; }
+.concierge__guard { list-style: none; margin: 18px 0 22px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.concierge__guard li { display: inline-flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--slate); }
+.concierge__guard li svg { width: 15px; height: 15px; color: var(--cobalt); flex: none; }
+.concierge__suggestions { display: flex; flex-direction: column; gap: 12px; }
+.concierge__suggestion-group { margin: 0 0 6px; font-weight: 700; color: var(--navy); font-size: 12.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+.concierge__suggestions ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.concierge__chip { background: #fff; border: 1px solid var(--ice-border); color: var(--navy); font-size: 12.5px; cursor: pointer; }
+.concierge__chip:hover { border-color: var(--cobalt); background: var(--cobalt-soft); }
+.concierge__chat { background: #fff; border: 1px solid var(--ice-border); border-radius: 20px; display: flex; flex-direction: column; min-height: 560px; max-height: 720px; box-shadow: var(--shadow-card); overflow: hidden; }
+.concierge__head { background: linear-gradient(135deg, var(--navy), var(--cobalt)); color: #fff; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+.concierge__avatar { width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 255, 255, 0.18); display: grid; place-items: center; }
+.concierge__avatar svg { width: 20px; height: 20px; color: #fff; }
+.concierge__head strong { display: block; font-size: 14px; }
+.concierge__head span { font-size: 11.5px; opacity: 0.8; }
+.concierge__thread { flex: 1 1 auto; overflow-y: auto; padding: 18px 20px 10px; display: flex; flex-direction: column; gap: 12px; background: #f7faff; }
+.concierge__msg { max-width: 86%; padding: 12px 16px; border-radius: 14px; font-size: 14.5px; line-height: 1.55; }
+.concierge__msg p { margin: 0; white-space: pre-wrap; }
+.concierge__msg--assistant { align-self: flex-start; background: #fff; border: 1px solid var(--ice-border); color: var(--navy); border-top-left-radius: 4px; }
+.concierge__msg--user { align-self: flex-end; background: var(--cobalt); color: #fff; border-top-right-radius: 4px; }
+.concierge__msg--pending { font-size: 13px; color: var(--slate); background: transparent; border: 0; display: inline-flex; align-items: center; gap: 8px; }
+.concierge__cta { margin-top: 10px; }
+.concierge__sources { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px dashed var(--ice-border); display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; }
+.concierge__sources li { display: inline-flex; align-items: center; gap: 4px; color: var(--slate); }
+.concierge__sources svg { width: 12px; height: 12px; }
+.concierge__sources a { color: var(--cobalt); text-decoration: none; }
+.concierge__sources a:hover { text-decoration: underline; }
+.concierge__composer { border-top: 1px solid var(--ice-border); background: #fff; padding: 12px 14px; display: flex; gap: 8px; align-items: center; }
+.concierge__composer input { flex: 1; padding: 10px 14px; border: 1px solid var(--ice-border); border-radius: 999px; font: inherit; font-size: 14px; color: var(--navy); background: var(--ice); }
+.concierge__composer input:focus-visible { outline: none; border-color: var(--cobalt); background: #fff; box-shadow: 0 0 0 3px rgba(20, 80, 216, 0.15); }
+.concierge__composer button svg { width: 15px; height: 15px; }
+.concierge__footer-note { margin: 0; padding: 10px 20px; border-top: 1px solid var(--ice-border); background: #ecfdf3; color: #05603a; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.concierge__footer-note svg { width: 15px; height: 15px; }
+.concierge-lead { margin-top: 10px; padding: 12px; background: var(--ice); border-radius: 10px; }
+.concierge-lead .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+.concierge-lead .field label { font-size: 12px; }
+.concierge-lead .field input { padding: 8px 10px; font-size: 13.5px; }
+
+@media (max-width: 1024px) {
+  .concierge__grid { grid-template-columns: 1fr; gap: 24px; }
+  .concierge__chat { min-height: 500px; max-height: 640px; }
+  .concierge-lead .form-grid { grid-template-columns: 1fr; }
+}

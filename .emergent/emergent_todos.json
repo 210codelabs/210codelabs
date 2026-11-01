@@ -13,14 +13,18 @@
   },
   {
     "content": "AI Concierge chat: backend endpoint + topic-locked guardrails + trusted-source grounding + schedule/lead actions",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "AI Concierge chat UI: homepage replaces form with chat (topics left, chat right)",
-    "status": "pending"
+    "status": "completed"
+  },
+  {
+    "content": "DataForSEO wired into blog engine (suggestions, volumes, difficulty, SERP intel)",
+    "status": "completed"
   },
   {
     "content": "Visual + end-to-end verify",
-    "status": "pending"
+    "status": "completed"
   }
 ]

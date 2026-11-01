@@ -166,7 +166,77 @@ async def dataforseo_volumes(keywords: List[str]) -> dict:
             res = (r.json().get("tasks") or [{}])[0].get("result") or []
             return {x["keyword"]: {"volume": x.get("search_volume"), "competition": x.get("competition"), "cpc": x.get("cpc")} for x in res}
     except Exception as e:
-        logger.warning("DataForSEO failed: %s", e)
+        logger.warning("DataForSEO volumes failed: %s", e)
+        return {}
+
+
+async def dataforseo_difficulty(keywords: List[str]) -> dict:
+    """Return {keyword: 0-100 difficulty} using DataForSEO Labs bulk difficulty."""
+    login, pwd = os.environ.get("DATAFORSEO_LOGIN"), os.environ.get("DATAFORSEO_PASSWORD")
+    if not (login and pwd) or not keywords:
+        return {}
+    try:
+        async with httpx.AsyncClient(timeout=40) as c:
+            r = await c.post("https://api.dataforseo.com/v3/dataforseo_labs/google/bulk_keyword_difficulty/live",
+                             auth=(login, pwd),
+                             json=[{"keywords": keywords[:700], "location_code": 2840, "language_code": "en"}])
+            res = (r.json().get("tasks") or [{}])[0].get("result") or []
+            items = (res[0].get("items") or []) if res else []
+            return {it.get("keyword"): it.get("keyword_difficulty") for it in items if it.get("keyword")}
+    except Exception as e:
+        logger.warning("DataForSEO difficulty failed: %s", e)
+        return {}
+
+
+async def dataforseo_suggestions(seed: str, limit: int = 25) -> List[str]:
+    """Return keyword suggestions that *contain* the seed (DataForSEO Labs)."""
+    login, pwd = os.environ.get("DATAFORSEO_LOGIN"), os.environ.get("DATAFORSEO_PASSWORD")
+    if not (login and pwd) or not seed:
+        return []
+    try:
+        async with httpx.AsyncClient(timeout=40) as c:
+            r = await c.post("https://api.dataforseo.com/v3/dataforseo_labs/google/keyword_suggestions/live",
+                             auth=(login, pwd),
+                             json=[{"keyword": seed, "location_code": 2840, "language_code": "en", "limit": limit}])
+            res = (r.json().get("tasks") or [{}])[0].get("result") or []
+            items = (res[0].get("items") or []) if res else []
+            out = []
+            for it in items:
+                kw = (it.get("keyword") or it.get("keyword_data", {}).get("keyword") or "").strip()
+                if kw:
+                    out.append(kw)
+            return out
+    except Exception as e:
+        logger.warning("DataForSEO suggestions failed: %s", e)
+        return []
+
+
+async def dataforseo_serp(keyword: str) -> dict:
+    """Return top-10 Google organic for `keyword`: {items: [{title, url, description, rank}], people_also_ask: [str]}."""
+    login, pwd = os.environ.get("DATAFORSEO_LOGIN"), os.environ.get("DATAFORSEO_PASSWORD")
+    if not (login and pwd) or not keyword:
+        return {}
+    try:
+        async with httpx.AsyncClient(timeout=45) as c:
+            r = await c.post("https://api.dataforseo.com/v3/serp/google/organic/live/regular",
+                             auth=(login, pwd),
+                             json=[{"keyword": keyword, "location_code": 2840, "language_code": "en",
+                                     "device": "desktop", "depth": 10}])
+            res = (r.json().get("tasks") or [{}])[0].get("result") or []
+            items_raw = (res[0].get("items") or []) if res else []
+            top, paa = [], []
+            for it in items_raw:
+                t = it.get("type")
+                if t == "organic" and len(top) < 10:
+                    top.append({"rank": it.get("rank_absolute"), "title": it.get("title"),
+                                 "url": it.get("url"), "description": it.get("description")})
+                elif t == "people_also_ask":
+                    for q in (it.get("items") or []):
+                        if q.get("title"):
+                            paa.append(q["title"])
+            return {"top": top, "people_also_ask": paa[:8]}
+    except Exception as e:
+        logger.warning("DataForSEO SERP failed: %s", e)
         return {}
 
 
@@ -181,27 +251,42 @@ async def research_keywords(db, seeds: Optional[List[str]] = None) -> int:
         results = await asyncio.gather(*[google_suggest(c, q) for q in queries])
     for lst in results:
         found.update(x.lower().strip() for x in lst if 2 <= len(x.split()) <= 9)
+    # Augment with DataForSEO's own suggestions (fuller coverage + buyer intent)
+    dfs_results = await asyncio.gather(*[dataforseo_suggestions(s, limit=25) for s in seeds])
+    for lst in dfs_results:
+        found.update(x.lower().strip() for x in lst if 2 <= len(x.split()) <= 9)
     existing = {k["keyword"] async for k in db.blog_keywords.find({}, {"keyword": 1, "_id": 0})}
-    candidates = sorted(found - existing)[:180]
+    candidates = sorted(found - existing)[:220]
     if not candidates:
         return 0
     ranked = await ask_json(
         "You are a B2B SEO strategist. Answer with JSON only.",
-        f"Company: {COMPANY_CONTEXT}\n\nThese are real Google autocomplete searches:\n{json.dumps(candidates)}\n\n"
-        "Pick the 15 searches most likely typed by potential BUYERS of this company's services (CTOs, founders, operations "
+        f"Company: {COMPANY_CONTEXT}\n\nThese are real Google autocomplete + DataForSEO suggestions:\n{json.dumps(candidates)}\n\n"
+        "Pick the 20 searches most likely typed by potential BUYERS of this company's services (CTOs, founders, operations "
         "leaders, healthcare practice owners, investors). Skip location-specific ones outside the US, job-seeker and "
         "student queries, and brand names of competitors. Return JSON: {\"keywords\": [{\"keyword\": str (exactly as given), "
         "\"intent\": one of informational|commercial|transactional, \"priority\": 1-100, \"angle\": short article angle}]}",
         f"kw-{uuid.uuid4()}",
     )
     items = [k for k in ranked.get("keywords", []) if k.get("keyword") in candidates]
-    vols = await dataforseo_volumes([k["keyword"] for k in items])
+    picked = [k["keyword"] for k in items]
+    vols, diff = await asyncio.gather(dataforseo_volumes(picked), dataforseo_difficulty(picked))
     for k in items:
-        v = vols.get(k["keyword"], {})
-        await db.blog_keywords.update_one({"keyword": k["keyword"]}, {"$setOnInsert": {
-            "id": str(uuid.uuid4()), "keyword": k["keyword"], "intent": k.get("intent", "informational"),
-            "priority": int(k.get("priority", 50)), "angle": k.get("angle", ""), "source": "google-suggest+ai",
+        kw = k["keyword"]
+        v = vols.get(kw, {})
+        d = diff.get(kw)
+        # Boost priority with real volume (log-scaled) and penalize for high difficulty
+        base_prio = int(k.get("priority", 50))
+        import math
+        vol_boost = int(min(20, math.log10((v.get("volume") or 1) + 1) * 6)) if v.get("volume") else 0
+        diff_pen = int((d or 0) / 8) if d else 0
+        final_prio = max(1, min(100, base_prio + vol_boost - diff_pen))
+        await db.blog_keywords.update_one({"keyword": kw}, {"$setOnInsert": {
+            "id": str(uuid.uuid4()), "keyword": kw, "intent": k.get("intent", "informational"),
+            "priority": final_prio, "angle": k.get("angle", ""),
+            "source": "google-suggest+dataforseo+ai",
             "volume": v.get("volume"), "competition": v.get("competition"), "cpc": v.get("cpc"),
+            "difficulty": d,
             "used": False, "created_at": now_iso()}}, upsert=True)
     return len(items)
 
@@ -229,11 +314,20 @@ quotes, awards or prices; speak from engineering experience instead. American En
 
 async def write_article(keyword: dict, recent_titles: List[str]) -> dict:
     spec = ARTICLE_SPEC.replace("PATHS", ", ".join(SITE_PAGES.keys()))
+    # SERP intelligence: pull top-10 competitors + People-Also-Ask for grounding
+    serp = await dataforseo_serp(keyword["keyword"])
+    serp_block = ""
+    if serp.get("top"):
+        rows = [f"{t.get('rank', '?')}. {t.get('title', '')} — {t.get('url', '')} · {(t.get('description') or '')[:160]}" for t in serp["top"][:10]]
+        serp_block += "\n\nTop Google competitors (do NOT copy, but beat them with better structure and specificity):\n" + "\n".join(rows)
+    if serp.get("people_also_ask"):
+        serp_block += "\n\nPeople Also Ask (incorporate the ones that match buyer intent into FAQ or H3s):\n- " + "\n- ".join(serp["people_also_ask"])
     return await ask_json(
         "You are the senior technical editor of the 210Codelabs blog. You write expert, accurate, SEO and AI-answer-engine "
         "optimized articles. Answer with JSON only.",
         f"Company: {COMPANY_CONTEXT}\n\nFocus keyword: \"{keyword['keyword']}\" (intent: {keyword.get('intent')}). "
-        f"Angle: {keyword.get('angle') or 'practical guide for decision makers'}.\nAvoid repeating these recent titles: {recent_titles}\n\n{spec}",
+        f"Angle: {keyword.get('angle') or 'practical guide for decision makers'}.\n"
+        f"Avoid repeating these recent titles: {recent_titles}{serp_block}\n\n{spec}",
         f"post-{uuid.uuid4()}",
     )
 
