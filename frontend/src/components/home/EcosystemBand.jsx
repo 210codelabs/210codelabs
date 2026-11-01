@@ -11,9 +11,16 @@ export const EcosystemBand = () => (
       <p className="ecosystem__text reveal">We partner with industry leaders to deliver world-class solutions and real-world impact.</p>
       <ul className="ecosystem__list" aria-label="Technology ecosystem">
         {ECOSYSTEM.map((e, i) => (
-          <li key={e.name} className={`eco-item eco-item--${i} reveal`} style={{ "--d": `${i * 60}ms` }} data-testid={`ecosystem-item-${e.name.toLowerCase().replace(/\s+/g, "-")}`}>
-            <span className="eco-item__name">{e.name}</span>
-            <span className="eco-item__caption">{e.caption}</span>
+          <li key={e.name} className={`eco-item eco-item--${i} reveal`} style={{ "--d": `${i * 60}ms`, "--badge-h": `${e.h}px` }} data-testid={`ecosystem-item-${e.name.toLowerCase().replace(/\s+/g, "-")}`}>
+            <img
+              className="eco-item__badge"
+              src={`${e.badge}.webp`}
+              srcSet={`${e.badge}.webp 1x, ${e.badge}@2x.webp 2x`}
+              alt={e.alt}
+              height={e.h}
+              loading="lazy"
+              decoding="async"
+            />
           </li>
         ))}
       </ul>

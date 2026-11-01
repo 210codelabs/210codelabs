@@ -131,12 +131,12 @@ export const CASES = [
   },
 ];
 
-// Ecosystem names are shown as text only (authorisation confirmed by owner).
-// No third-party logos, badges or "official / certified partner" wording.
+// Ecosystem partner badges supplied by the owner (partner status confirmed by 210Codelabs).
+// Badge artwork is the partners' own; only the background was made transparent to blend.
 export const ECOSYSTEM = [
-  { name: "OpenAI", caption: "AI Models & Tools" },
-  { name: "Google Cloud", caption: "Cloud Infrastructure" },
-  { name: "Microsoft", caption: "Enterprise Solutions" },
+  { name: "OpenAI", caption: "AI Models & Tools", badge: "/assets/ecosystem-openai", alt: "OpenAI Partner", h: 34 },
+  { name: "Google Cloud", caption: "Cloud Infrastructure", badge: "/assets/ecosystem-google-cloud", alt: "Google Cloud Partner", h: 44 },
+  { name: "Microsoft", caption: "Enterprise Solutions", badge: "/assets/ecosystem-microsoft", alt: "Microsoft Solutions Partner — Cloud & AI Platforms", h: 38 },
 ];
 
 export const INTERESTS = [

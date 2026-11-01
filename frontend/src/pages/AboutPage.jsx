@@ -9,6 +9,7 @@ import { PurposeBand } from "@/components/home/PurposeBand";
 import { CapIcon, ArrowCircle } from "@/components/site/Primitives";
 import { Leadership } from "@/components/about/Leadership";
 import { SocialLinks } from "@/components/site/SocialLinks";
+import { CredentialsShowcase } from "@/components/credentials/Credentials";
 
 export default function AboutPage() {
   useSeo({
@@ -79,6 +80,8 @@ export default function AboutPage() {
           </ol>
         </div>
       </section>
+
+      <CredentialsShowcase />
 
       <Leadership />
 

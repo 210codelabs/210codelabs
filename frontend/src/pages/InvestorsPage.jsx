@@ -5,6 +5,7 @@ import { useSeo } from "@/hooks/useSeo";
 import { CONTACT, PURPOSE } from "@/config/site";
 import { FOUNDATION, SOLUTIONS, TRACKS } from "@/config/solutions";
 import { PageHero, ComingSoon } from "@/components/site/PageHero";
+import { CredentialsBand } from "@/components/credentials/Credentials";
 
 export default function InvestorsPage() {
   useSeo({ title: "For Investors", description: "210Codelabs Corporation: one focus — AI-native software platforms. Live AI products and healthcare SaaS built by the same team." });
@@ -65,6 +66,8 @@ export default function InvestorsPage() {
           </div>
         </div>
       </section>
+
+      <CredentialsBand testId="investors-credentials-band" />
 
       <section className="section section--ice">
         <div className="container container--narrow stack-lg">

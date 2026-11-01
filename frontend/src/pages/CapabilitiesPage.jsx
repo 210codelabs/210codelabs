@@ -40,6 +40,11 @@ export default function CapabilitiesPage() {
                     <h2 className="cap-row__title">{c.title}</h2>
                     <p className="cap-row__text">{c.text}</p>
                     <p className="cap-row__soon">Detailed service information coming soon.</p>
+                    {c.slug === "ai-engineering" && (
+                      <p className="cap-row__related cap-row__proven">
+                        Verified expertise: <Link to="/about#openai-credentials" data-testid="capability-ai-credentials-link">10+ OpenAI Professional Certifications</Link>
+                      </p>
+                    )}
                     {solutionsFor(c.slug).length > 0 && (
                       <p className="cap-row__related cap-row__proven">
                         Proven in:{" "}

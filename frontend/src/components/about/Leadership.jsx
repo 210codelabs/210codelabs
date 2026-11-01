@@ -1,5 +1,6 @@
 import React from "react";
-import { ArrowUpRight, BookOpen, GraduationCap, MapPin } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, BookOpen, GraduationCap, MapPin } from "lucide-react";
+import { CREDENTIALS_META } from "@/config/credentials";
 import { LEADER } from "@/config/company";
 import { SocialLinks } from "@/components/site/SocialLinks";
 
@@ -39,6 +40,7 @@ export const Leadership = () => (
           <ul className="leader__meta">
             <li><MapPin aria-hidden="true" /> San Antonio, Texas</li>
             <li><GraduationCap aria-hidden="true" /> {LEADER.education}</li>
+            <li><BadgeCheck aria-hidden="true" /> <a href="#openai-credentials" data-testid="leader-credentials-link">{CREDENTIALS_META.count} OpenAI professional certifications</a></li>
           </ul>
 
           {LEADER.bio.map((p) => <p key={p.slice(0, 24)} className="leader__bio">{p}</p>)}
