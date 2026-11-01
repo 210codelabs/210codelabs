@@ -118,6 +118,7 @@ export const SOLUTIONS = [
     status: "Live · part of the Proactive UMS ecosystem",
     url: "https://proactiveclinics.com",
     image: "proactiveclinics",
+    logo: "/assets/solutions/proactiveclinics-logo.webp",
   },
   {
     slug: "apexcare",
@@ -137,6 +138,7 @@ export const SOLUTIONS = [
     status: "Live · built with ProactiveMED",
     url: "https://apexcaremed.com",
     image: "apexcare",
+    logo: "/assets/solutions/apexcare-logo.webp",
   },
 ];
 

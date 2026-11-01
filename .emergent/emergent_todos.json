@@ -1,0 +1,18 @@
+[
+  {
+    "content": "Verify blog cron + end-to-end ready for 7am Central",
+    "status": "completed"
+  },
+  {
+    "content": "Fetch ProactiveClinics + ApexCare logos from their sites",
+    "status": "completed"
+  },
+  {
+    "content": "Process logos (transparent, uniform height) and wire into healthcare strip",
+    "status": "completed"
+  },
+  {
+    "content": "Visual verification on home + /work",
+    "status": "completed"
+  }
+]
