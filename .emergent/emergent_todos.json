@@ -1,26 +1,26 @@
 [
   {
-    "content": "Provision Clerk (Google sign-in) + add ADMIN_EMAIL=ernesto@210codelabs.com",
+    "content": "Replace hero background + left-side fade for readability",
     "status": "completed"
   },
   {
-    "content": "Backend: crm.py models + routers, hook /api/contact → CRM, Clerk-protected endpoints",
+    "content": "Admin sidebar logo → light-on-navy variant",
     "status": "completed"
   },
   {
-    "content": "Frontend: ClerkAuthProvider wiring, /sign-in route, admin shell layout + sidebar",
+    "content": "Footer: toolbox icon linking to /sign-in",
     "status": "completed"
   },
   {
-    "content": "Frontend admin pages: Dashboard, Contacts, Companies, Leads Kanban, Opportunities, Inbox, Calendar, Appointments, Tasks, Research, Analytics, Automations, Integrations, Settings",
-    "status": "completed"
+    "content": "AI Concierge chat: backend endpoint + topic-locked guardrails + trusted-source grounding + schedule/lead actions",
+    "status": "in_progress"
   },
   {
-    "content": "Public: attribution hook (UTM + cookie) + Appointment booking widget on Contact page",
-    "status": "completed"
+    "content": "AI Concierge chat UI: homepage replaces form with chat (topics left, chat right)",
+    "status": "pending"
   },
   {
-    "content": "Verify + test end-to-end",
-    "status": "completed"
+    "content": "Visual + end-to-end verify",
+    "status": "pending"
   }
 ]

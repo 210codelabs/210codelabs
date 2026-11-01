@@ -154,9 +154,9 @@ export const LEGAL = [
 
 export const IMG = {
   hero: {
-    src: "/assets/hero-futuristic-city-1600.webp",
+    src: "/assets/hero-san-antonio-1600.webp",
     srcSet:
-      "/assets/hero-futuristic-city-960.webp 960w, /assets/hero-futuristic-city-1600.webp 1600w, /assets/hero-futuristic-city-2206.webp 2206w",
+      "/assets/hero-san-antonio-1100.webp 1100w, /assets/hero-san-antonio-1600.webp 1600w, /assets/hero-san-antonio-2400.webp 2400w",
   },
   purpose: {
     src: "/assets/purpose-earth-band-1600.webp",

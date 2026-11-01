@@ -79,7 +79,7 @@ export default function AdminShell() {
   return (
     <div className="adminx" data-testid="admin-shell">
       <aside className="adminx__side" aria-label="Admin navigation">
-        <div className="adminx__brand"><Logo testId="admin-shell-logo" /></div>
+        <div className="adminx__brand"><Logo testId="admin-shell-logo" variant="light" /></div>
         <nav>
           <ul className="adminx__nav">
             {NAV.map(({ to, label, icon: Icon, end, testId }) => (

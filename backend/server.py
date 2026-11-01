@@ -279,9 +279,14 @@ from clerk_auth import clerk_router, require_admin as require_clerk_admin  # noq
 app.include_router(clerk_router)
 
 # CRM module (Clerk-protected admin + public booking)
-from crm import build_router as build_crm_router  # noqa: E402
+from crm import build_router as build_crm_router, _upsert_contact, score_lead, ingest_contact_message  # noqa: E402
 
 app.include_router(build_crm_router(db, require_clerk_admin))
+
+# Homepage AI concierge chat
+from concierge import build_router as build_concierge_router  # noqa: E402
+
+app.include_router(build_concierge_router(db, _upsert_contact, score_lead, ingest_contact_message))
 
 app.add_middleware(
     CORSMiddleware,

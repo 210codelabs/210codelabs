@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Mail } from "lucide-react";
+import { ArrowRight, Mail, Wrench } from "lucide-react";
 import { CAPABILITIES, CONTACT, LEGAL, SITE } from "@/config/site";
 import { SocialLinks } from "@/components/site/SocialLinks";
 
@@ -79,7 +79,18 @@ export const Footer = () => (
 
     <div className="site-footer__bottom">
       <div className="container site-footer__bottom-inner">
-        <p data-testid="footer-copyright">{SITE.copyright}</p>
+        <p data-testid="footer-copyright">
+          {SITE.copyright}
+          <Link
+            to="/sign-in"
+            className="footer-admin-link"
+            aria-label="Administrator sign-in"
+            title="Administrator sign-in"
+            data-testid="footer-admin-link"
+          >
+            <Wrench aria-hidden="true" />
+          </Link>
+        </p>
         <ul className="site-footer__legal-inline" aria-label="Legal shortcuts">
           {LEGAL.map((l) => (
             <li key={l.slug}><Link to={`/legal/${l.slug}`}>{l.label}</Link></li>

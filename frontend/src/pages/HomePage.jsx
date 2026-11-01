@@ -8,6 +8,7 @@ import { FinalCta } from "@/components/home/FinalCta";
 import { CredentialsBand } from "@/components/credentials/Credentials";
 import { SolutionsStrip } from "@/components/solutions/SolutionsPortfolio";
 import { ContactSection } from "@/components/contact/ContactSection";
+import { HomeConcierge } from "@/components/home/HomeConcierge";
 
 export default function HomePage() {
   useSeo({});
@@ -20,7 +21,7 @@ export default function HomePage() {
       <EcosystemBand />
       <CredentialsBand />
       <FinalCta />
-      <ContactSection />
+      <HomeConcierge />
     </div>
   );
 }
