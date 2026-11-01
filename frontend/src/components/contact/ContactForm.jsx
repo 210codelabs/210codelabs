@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { CONTACT, INTERESTS } from "@/config/site";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { attributionPayload } from "@/lib/attribution";
 
 const EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -75,7 +76,7 @@ export const ContactForm = ({ defaultInterest = "", idPrefix = "cf" }) => {
       const res = await fetch(CONTACT.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, name: values.name.trim(), email: values.email.trim() }),
+        body: JSON.stringify({ ...values, name: values.name.trim(), email: values.email.trim(), ...attributionPayload() }),
       });
       if (!res.ok) {
         let detail = "";

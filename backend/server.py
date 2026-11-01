@@ -84,6 +84,12 @@ class ContactIn(BaseModel):
     message: str = Field(..., min_length=10, max_length=5000)
     consent: bool
     website: Optional[str] = Field(default="", max_length=200)  # honeypot
+    # Optional attribution fields (silently ignored if missing)
+    phone: Optional[str] = Field(default=None, max_length=40)
+    source_page: Optional[str] = Field(default=None, max_length=400)
+    landing_page: Optional[str] = Field(default=None, max_length=400)
+    referrer: Optional[str] = Field(default=None, max_length=400)
+    utm: Optional[dict] = None
 
     @field_validator("name", "organization", "message", mode="before")
     @classmethod
@@ -142,6 +148,7 @@ async def submit_contact(payload: ContactIn, request: Request):
         "id": str(uuid.uuid4()),
         "name": payload.name,
         "email": payload.email.lower(),
+        "phone": payload.phone,
         "organization": payload.organization or "",
         "interest": payload.interest,
         "message": payload.message,
@@ -150,9 +157,19 @@ async def submit_contact(payload: ContactIn, request: Request):
         "status": "new",
         "created_at": _now_iso(),
         "user_agent": request.headers.get("user-agent", "")[:300],
+        "source_page": payload.source_page,
+        "landing_page": payload.landing_page,
+        "referrer": payload.referrer,
+        "utm": payload.utm or {},
     }
     await db.contact_messages.insert_one(doc)
     logger.info("Contact message stored id=%s", doc["id"])
+    # Hook into CRM — contact + lead + activity (non-blocking of response if fails)
+    try:
+        from crm import ingest_contact_message  # late import to avoid cycle
+        await ingest_contact_message(db, doc)
+    except Exception as e:
+        logger.exception("CRM ingest failed: %s", e)
     return ContactOut(ok=True, id=doc["id"])
 
 
@@ -256,6 +273,16 @@ from blog import build_router as build_blog_router  # noqa: E402
 
 app.include_router(build_blog_router(db, require_admin))
 
+# Clerk auth (admin app)
+from clerk_auth import clerk_router, require_admin as require_clerk_admin  # noqa: E402
+
+app.include_router(clerk_router)
+
+# CRM module (Clerk-protected admin + public booking)
+from crm import build_router as build_crm_router  # noqa: E402
+
+app.include_router(build_crm_router(db, require_clerk_admin))
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -275,6 +302,20 @@ async def startup():
     await db.blog_keywords.create_index("keyword", unique=True)
     await db.blog_runs.create_index("run_id", unique=True)
     await db.blog_images.create_index("id", unique=True)
+    # CRM indexes
+    await db.crm_contacts.create_index("email", unique=True)
+    await db.crm_contacts.create_index("id", unique=True)
+    await db.crm_companies.create_index("id", unique=True)
+    await db.crm_companies.create_index("domain")
+    await db.crm_leads.create_index("id", unique=True)
+    await db.crm_leads.create_index([("stage", 1), ("updated_at", -1)])
+    await db.crm_opportunities.create_index("id", unique=True)
+    await db.crm_tasks.create_index("id", unique=True)
+    await db.crm_appointments.create_index("id", unique=True)
+    await db.crm_appointments.create_index([("status", 1), ("start_at", 1)])
+    await db.crm_activity.create_index("id", unique=True)
+    await db.crm_research.create_index("id", unique=True)
+    await db.crm_inbox_replies.create_index("message_id")
 
 
 @app.on_event("shutdown")

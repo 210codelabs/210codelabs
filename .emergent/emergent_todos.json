@@ -1,18 +1,26 @@
 [
   {
-    "content": "Verify blog cron + end-to-end ready for 7am Central",
+    "content": "Provision Clerk (Google sign-in) + add ADMIN_EMAIL=ernesto@210codelabs.com",
     "status": "completed"
   },
   {
-    "content": "Fetch ProactiveClinics + ApexCare logos from their sites",
+    "content": "Backend: crm.py models + routers, hook /api/contact → CRM, Clerk-protected endpoints",
     "status": "completed"
   },
   {
-    "content": "Process logos (transparent, uniform height) and wire into healthcare strip",
+    "content": "Frontend: ClerkAuthProvider wiring, /sign-in route, admin shell layout + sidebar",
     "status": "completed"
   },
   {
-    "content": "Visual verification on home + /work",
+    "content": "Frontend admin pages: Dashboard, Contacts, Companies, Leads Kanban, Opportunities, Inbox, Calendar, Appointments, Tasks, Research, Analytics, Automations, Integrations, Settings",
+    "status": "completed"
+  },
+  {
+    "content": "Public: attribution hook (UTM + cookie) + Appointment booking widget on Contact page",
+    "status": "completed"
+  },
+  {
+    "content": "Verify + test end-to-end",
     "status": "completed"
   }
 ]
