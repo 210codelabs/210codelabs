@@ -12,7 +12,7 @@ export const FinalCta = () => {
       <div className="container final-cta__inner">
         <div className="reveal">
           <p className="eyebrow">A BRIGHTER TOMORROW</p>
-          <h2 id="final-cta-title" className="final-cta__title">Bring your vision. We bring the engineering.</h2>
+          <h2 id="final-cta-title" className="final-cta__title">Bring your ambition. We bring the engineering.</h2>
           <p className="final-cta__text">Let’s build practical, powerful solutions for what’s next.</p>
         </div>
         <a

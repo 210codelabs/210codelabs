@@ -12,7 +12,7 @@ export const ContactSection = ({ defaultInterest = "", headingLevel = 2, idPrefi
         <div className="contact__intro reveal">
           <p className="eyebrow">CONTACT</p>
           <H id={`${idPrefix}-title`} className="section-title section-title--lg">Start a Conversation</H>
-          <p className="contact__lead">Bring your vision. We bring the engineering. Tell us what you want to build using the form, or write to us directly.</p>
+          <p className="contact__lead">Bring your ambition. We bring the engineering. Tell us what you want to build using the form, or write to us directly.</p>
           <a href={`mailto:${CONTACT.email}`} className="contact__email" data-testid="contact-section-email-link">
             <span className="contact__email-icon"><Mail aria-hidden="true" /></span>
             <span>

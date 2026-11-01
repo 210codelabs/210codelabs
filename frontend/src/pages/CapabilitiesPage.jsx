@@ -16,7 +16,7 @@ export default function CapabilitiesPage() {
     <div data-testid="capabilities-page">
       <PageHero
         eyebrow="CAPABILITIES"
-        title="Bring your vision. We bring the engineering."
+        title="Bring your ambition. We bring the engineering."
         lead="Next-generation software systems, AI-powered products, and cloud-native platforms that turn bold ideas into real-world impact."
         crumbs={[{ label: "Capabilities" }]}
       >

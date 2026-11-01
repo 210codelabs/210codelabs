@@ -30,7 +30,7 @@ export const Hero = () => {
             <span className="hero__title-l1">Let’s build</span>
             <span className="hero__title-l2">what’s next.</span>
           </h1>
-          <p className="hero__subtitle anim-up" style={{ "--d": "120ms" }}>Bring your vision. We bring the engineering.</p>
+          <p className="hero__subtitle anim-up" style={{ "--d": "120ms" }}>Bring your ambition. We bring the engineering.</p>
           <p className="hero__text anim-up" style={{ "--d": "170ms" }}>
             210Codelabs Corporation designs and builds next-generation software systems, AI-powered products, and
             cloud-native platforms that turn bold ideas into real-world impact.

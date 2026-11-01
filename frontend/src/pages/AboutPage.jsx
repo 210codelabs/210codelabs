@@ -89,7 +89,7 @@ export default function AboutPage() {
         <div className="container">
           <div className="section-head reveal">
             <p className="eyebrow">WHAT WE DO</p>
-            <h2 id="about-what" className="section-title section-title--lg">Bring your vision. We bring the engineering.</h2>
+            <h2 id="about-what" className="section-title section-title--lg">Bring your ambition. We bring the engineering.</h2>
           </div>
           <ul className="tile-grid">
             {CAPABILITIES.map((c, i) => (
