@@ -7,3 +7,10 @@ crons:
     endpoint: "{{BASE_URL}}/api/cron/daily-post"
     method: POST
     enabled: true
+  - name: daily-lead-digest
+    description: "Emails Ernesto a morning summary of new leads, today's meetings and overdue tasks"
+    cron: "30 7 * * *"
+    timezone: "America/Chicago"
+    endpoint: "{{BASE_URL}}/api/cron/lead-digest"
+    method: POST
+    enabled: true

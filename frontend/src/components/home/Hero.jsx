@@ -1,11 +1,13 @@
-import React from "react";
-import { ArrowRight, Play } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowRight, CalendarClock, Play } from "lucide-react";
 import { IMG } from "@/config/site";
 import { useScrollTo } from "@/hooks/useScrollTo";
 import { CapabilityRow } from "@/components/home/CapabilityRow";
+import BookingWidget from "@/components/booking/BookingWidget";
 
 export const Hero = () => {
   const scrollTo = useScrollTo();
+  const [booking, setBooking] = useState(false);
   return (
     <div className="hero-wrap">
     <section className="hero" id="top" aria-labelledby="hero-title" data-testid="hero-section">
@@ -44,6 +46,14 @@ export const Hero = () => {
             >
               Start a Conversation <ArrowRight aria-hidden="true" />
             </a>
+            <button
+              type="button"
+              className="btn btn-secondary btn-pill btn-lg"
+              onClick={() => setBooking(true)}
+              data-testid="hero-schedule-meeting-button"
+            >
+              <CalendarClock aria-hidden="true" /> Schedule a Meeting
+            </button>
             <a
               href="#work"
               className="btn btn-secondary btn-pill btn-lg"
@@ -65,6 +75,7 @@ export const Hero = () => {
       </div>
     </section>
     <CapabilityRow />
+    <BookingWidget open={booking} onClose={() => setBooking(false)} />
     </div>
   );
 };

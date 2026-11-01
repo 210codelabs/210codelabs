@@ -764,6 +764,53 @@ def build_router(db, require_admin_dep) -> APIRouter:
     async def crm_services(user: dict = Depends(require_admin_dep)):
         return {"services": SERVICES, "stages": STAGES, "appointment_types": APPT_TYPES}
 
+    # ============================================================= DAILY LEAD DIGEST (cron)
+    @r.post("/cron/lead-digest")
+    async def cron_lead_digest(request: Request):
+        import hmac
+        secret = os.environ.get("WEBHOOK_CRON_SECRET", "")
+        auth = request.headers.get("authorization", "")
+        if not secret or not auth.startswith("Bearer ") or not hmac.compare_digest(auth[7:].encode(), secret.encode()):
+            raise HTTPException(401, "Unauthorized")
+        owner_email = os.environ.get("OWNER_EMAIL") or ""
+        if not owner_email:
+            raise HTTPException(503, "OWNER_EMAIL not configured")
+        try:
+            run_id = (await request.json()).get("run_id") or str(uuid.uuid4())
+        except Exception:
+            run_id = str(uuid.uuid4())
+        if await db.crm_digest_runs.find_one({"run_id": run_id}):
+            return {"ok": True, "duplicate": True}
+        await db.crm_digest_runs.insert_one({"run_id": run_id, "started_at": now_iso(), "status": "running"})
+        try:
+            html, subject, counts = await _build_digest(db)
+            from email_sender import send_managed_email
+            result = await send_managed_email(to=owner_email, subject=subject, html=html)
+            await db.crm_digest_runs.update_one({"run_id": run_id}, {"$set": {
+                "status": "sent" if result.get("ok") else "failed",
+                "finished_at": now_iso(), "to": owner_email, "counts": counts,
+                "result": {k: result.get(k) for k in ("ok", "id", "status", "code", "message")},
+            }})
+            return {"ok": True, "run_id": run_id, "sent": result.get("ok", False), "counts": counts}
+        except Exception as e:
+            logger.exception("digest failed")
+            await db.crm_digest_runs.update_one({"run_id": run_id}, {"$set": {"status": "error", "error": str(e)[:300], "finished_at": now_iso()}})
+            raise HTTPException(500, f"Digest failed: {e}")
+
+    @r.post("/admin/crm/digest/preview")
+    async def digest_preview(user: dict = Depends(require_admin_dep)):
+        html, subject, counts = await _build_digest(db)
+        return {"subject": subject, "html": html, "counts": counts}
+
+    @r.post("/admin/crm/digest/send-test")
+    async def digest_send_test(user: dict = Depends(require_admin_dep)):
+        owner = os.environ.get("OWNER_EMAIL") or ""
+        if not owner:
+            raise HTTPException(503, "OWNER_EMAIL not configured")
+        html, subject, counts = await _build_digest(db)
+        from email_sender import send_managed_email
+        return await send_managed_email(to=owner, subject=f"[Test] {subject}", html=html)
+
     return r
 
 
@@ -865,3 +912,97 @@ async def _ai_research(db, body: ResearchIn):
         await db.crm_companies.update_one({"id": body.company_id},
                                            {"$set": {"research_summary": summary, "updated_at": now_iso()}})
     return summary, sources, brief_md
+
+
+# ---------- daily digest ----------
+from html import escape as _esc  # noqa: E402
+
+
+async def _build_digest(db):
+    now = datetime.now(timezone.utc)
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
+    yesterday = now - timedelta(hours=24)
+
+    new_leads = await db.crm_leads.find({"created_at": {"$gte": yesterday.isoformat()}}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    # resolve contact names
+    ids = {L.get("contact_id") for L in new_leads if L.get("contact_id")}
+    contacts = {c["id"]: c async for c in db.crm_contacts.find({"id": {"$in": list(ids)}}, {"_id": 0})}
+    for L in new_leads:
+        c = contacts.get(L.get("contact_id") or "", {})
+        L["_name"] = c.get("name") or c.get("email") or "Unknown"
+        L["_email"] = c.get("email") or ""
+        L["_company"] = c.get("company") or ""
+
+    today_meetings = await db.crm_appointments.find(
+        {"status": "scheduled", "start_at": {"$gte": day_start.isoformat(), "$lt": day_end.isoformat()}},
+        {"_id": 0},
+    ).sort("start_at", 1).to_list(50)
+    overdue = await db.crm_tasks.find({"status": "open", "due_at": {"$lt": now.isoformat()}}, {"_id": 0}).sort("due_at", 1).to_list(20)
+    pending_qualified = await db.crm_leads.find({"stage": {"$in": ["qualified", "discovery", "proposal", "negotiation"]}}, {"_id": 0}).sort("updated_at", -1).limit(10).to_list(10)
+
+    counts = {
+        "new_leads": len(new_leads),
+        "today_meetings": len(today_meetings),
+        "overdue_tasks": len(overdue),
+        "pending_qualified": await db.crm_leads.count_documents({"stage": {"$in": ["qualified", "discovery", "proposal", "negotiation"]}}),
+    }
+    date_label = now.strftime("%A, %B %d, %Y")
+    subject = f"210Codelabs daily brief \u2014 {counts['new_leads']} new, {counts['today_meetings']} meeting(s) today"
+    workspace_url = "https://bright-tomorrow-lab--3vgwcyhh.preview.emergentagent.com/admin"
+
+    def section(title: str, rows: list[str]) -> str:
+        inner = "".join(rows) if rows else '<tr><td style="padding:10px 0;color:#687186">Nothing to report.</td></tr>'
+        return (f'<h2 style="font:600 15px Arial;color:#0a1d44;margin:20px 0 6px">{_esc(title)}</h2>'
+                f'<table role="presentation" width="100%" style="border-collapse:collapse;font:14px Arial;color:#0a1d44">{inner}</table>')
+
+    def lead_row(L):
+        return (f'<tr><td style="padding:8px 0;border-top:1px solid #eef2f8">'
+                f'<strong>{_esc(L["_name"])}</strong> '
+                f'<span style="color:#687186">\u00b7 {_esc(L.get("_company") or "no company")}</span><br>'
+                f'<span style="color:#687186;font-size:13px">{_esc((L.get("service") or "general inquiry"))} \u00b7 score {int(L.get("score") or 0)}/100</span><br>'
+                f'<span style="color:#44506a;font-size:13px">{_esc((L.get("message") or "")[:200])}</span>'
+                f'</td></tr>')
+
+    def meeting_row(m):
+        t = datetime.fromisoformat(m["start_at"]).strftime("%I:%M %p UTC")
+        return (f'<tr><td style="padding:8px 0;border-top:1px solid #eef2f8">'
+                f'<strong>{_esc(m.get("type_label") or "Meeting")}</strong> '
+                f'<span style="color:#687186">\u00b7 {t}</span><br>'
+                f'<span style="color:#687186;font-size:13px">with {_esc(m.get("name") or "")} ({_esc(m.get("email") or "")})</span>'
+                f'</td></tr>')
+
+    def task_row(t):
+        due = ""
+        try:
+            due = datetime.fromisoformat(t["due_at"]).strftime("%b %d, %Y %I:%M %p UTC") if t.get("due_at") else ""
+        except Exception:
+            due = t.get("due_at", "")
+        due_html = f'<br><span style="color:#b42318;font-size:13px">overdue since {_esc(due)}</span>' if due else ""
+        return (f'<tr><td style="padding:8px 0;border-top:1px solid #eef2f8">'
+                f'<strong>{_esc(t.get("title") or "Task")}</strong>{due_html}'
+                f'</td></tr>')
+
+    html = (
+        '<table role="presentation" width="100%" style="background:#f5f8fe;padding:24px 0;font-family:Arial,sans-serif">'
+        '<tr><td align="center">'
+        '<table role="presentation" width="600" style="background:#fff;border-radius:14px;padding:28px 32px;max-width:600px;text-align:left">'
+        f'<tr><td style="padding-bottom:8px"><p style="margin:0;color:#687186;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700">210CODELABS \u00b7 DAILY BRIEF</p>'
+        f'<h1 style="margin:4px 0 0;font-size:22px;color:#0a1d44">Good morning, Ernesto.</h1>'
+        f'<p style="margin:6px 0 0;color:#44506a;font-size:14px">{_esc(date_label)}</p></td></tr>'
+        '<tr><td>'
+        '<table role="presentation" width="100%" style="margin:16px 0 4px;border-collapse:separate;border-spacing:8px 0;font:14px Arial"><tr>'
+        f'<td align="center" style="background:#eaf0ff;border-radius:10px;padding:12px"><strong style="font-size:20px;color:#0a1d44">{counts["new_leads"]}</strong><br><span style="color:#44506a;font-size:12px">new leads (24h)</span></td>'
+        f'<td align="center" style="background:#eaf0ff;border-radius:10px;padding:12px"><strong style="font-size:20px;color:#0a1d44">{counts["today_meetings"]}</strong><br><span style="color:#44506a;font-size:12px">meetings today</span></td>'
+        f'<td align="center" style="background:#eaf0ff;border-radius:10px;padding:12px"><strong style="font-size:20px;color:#0a1d44">{counts["overdue_tasks"]}</strong><br><span style="color:#44506a;font-size:12px">overdue tasks</span></td>'
+        f'<td align="center" style="background:#eaf0ff;border-radius:10px;padding:12px"><strong style="font-size:20px;color:#0a1d44">{counts["pending_qualified"]}</strong><br><span style="color:#44506a;font-size:12px">qualified in flight</span></td>'
+        '</tr></table></td></tr>'
+        f'<tr><td>{section("New leads (last 24 hours)", [lead_row(L) for L in new_leads])}</td></tr>'
+        f'<tr><td>{section("Meetings scheduled today", [meeting_row(m) for m in today_meetings])}</td></tr>'
+        f'<tr><td>{section("Overdue tasks", [task_row(t) for t in overdue])}</td></tr>'
+        f'<tr><td>{section("Qualified leads to follow up on", [lead_row(L | {"_name": contacts.get(L.get("contact_id") or "", {}).get("name") or L.get("contact_id") or "", "_email": "", "_company": contacts.get(L.get("contact_id") or "", {}).get("company") or ""}) for L in pending_qualified])}</td></tr>'
+        f'<tr><td style="padding-top:18px"><a href="{workspace_url}" style="display:inline-block;background:#1450d8;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:700">Open the admin workspace</a></td></tr>'
+        f'<tr><td style="padding-top:14px;color:#687186;font-size:12px">Sent by 210Codelabs. We never ask for your password or codes by email.</td></tr>'
+        '</table></td></tr></table>'
+    )
+    return html, subject, counts
