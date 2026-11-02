@@ -37,15 +37,16 @@ export async function api(path, { token, method = "GET", body } = {}) {
 }
 
 export function Login({ onLogin }) {
+  const [u, setU] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const submit = async (e) => {
     e.preventDefault();
-    if (!pw) { setErr("Please enter the admin password."); return; }
+    if (!pw) { setErr("Please enter your password."); return; }
     setBusy(true); setErr("");
     try {
-      const d = await api("/admin/login", { method: "POST", body: { password: pw } });
+      const d = await api("/admin/login", { method: "POST", body: { username: u || undefined, password: pw } });
       sessionStorage.setItem(TOKEN_KEY, d.token);
       onLogin(d.token);
     } catch (e2) {
@@ -58,7 +59,11 @@ export function Login({ onLogin }) {
         <div className="admin-login__logo"><Logo testId="admin-logo-link" /></div>
         <span className="admin-login__icon" aria-hidden="true"><Lock /></span>
         <h1 className="admin-login__title">Messages inbox</h1>
-        <p className="muted">Private area. Enter the admin password to read contact form messages.</p>
+        <p className="muted">Private area. Sign in with your Blog Engine account (or leave username blank to use the founder password).</p>
+        <div className="field">
+          <label htmlFor="admin-u">Username <span className="muted">(optional)</span></label>
+          <input id="admin-u" type="text" autoComplete="username" value={u} onChange={(e) => setU(e.target.value)} data-testid="admin-login-username-input" />
+        </div>
         <div className="field">
           <label htmlFor="admin-pw">Password</label>
           <input id="admin-pw" type="password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)}

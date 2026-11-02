@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Show, UserButton, useAuth, useUser } from "@clerk/react";
 import {
   LayoutDashboard, Users, Building2, Kanban, Target, Inbox, Calendar, CalendarCheck,
-  CheckSquare, Search, BarChart3, Workflow, Plug, Settings, Mail, FileText, LogIn,
+  CheckSquare, Search, BarChart3, Workflow, Plug, Settings, Mail, FileText, LogIn, UserCog,
 } from "lucide-react";
 import { Logo } from "@/components/site/Logo";
 import { useAdminApi } from "@/hooks/useAdminApi";
@@ -24,6 +24,7 @@ const NAV = [
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3, testId: "admin-nav-analytics" },
   { to: "/admin/automations", label: "Automations", icon: Workflow, testId: "admin-nav-automations" },
   { to: "/admin/integrations", label: "Integrations", icon: Plug, testId: "admin-nav-integrations" },
+  { to: "/admin/users", label: "User Management", icon: UserCog, testId: "admin-nav-users" },
   { to: "/admin/settings", label: "Settings", icon: Settings, testId: "admin-nav-settings" },
 ];
 

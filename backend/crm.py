@@ -785,6 +785,75 @@ def build_router(db, require_admin_dep) -> APIRouter:
         from blog import run_rank_check
         return await run_rank_check(db)
 
+    # ============================================================= BLOG ENGINE USER MANAGEMENT
+    @r.get("/admin/crm/blog-users")
+    async def blog_users_list(user: dict = Depends(require_admin_dep)):
+        items = await db.blog_users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(200)
+        return {"items": items}
+
+    @r.post("/admin/crm/blog-users")
+    async def blog_users_create(payload: dict, user: dict = Depends(require_admin_dep)):
+        import bcrypt
+        username = (payload.get("username") or "").strip().lower()
+        email = (payload.get("email") or "").strip().lower() or None
+        full_name = (payload.get("full_name") or "").strip() or None
+        password = payload.get("password") or ""
+        role = payload.get("role") or "editor"
+        if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{2,39}", username or ""):
+            raise HTTPException(400, "Username must be 3-40 chars (letters, digits, . _ -)")
+        if len(password) < 10:
+            raise HTTPException(400, "Password must be at least 10 characters")
+        if await db.blog_users.find_one({"$or": [{"username": username}, {"email": email}] if email else [{"username": username}]}):
+            raise HTTPException(409, "A user with that username or email already exists")
+        uid = str(uuid.uuid4())
+        doc = {
+            "id": uid, "username": username, "email": email, "full_name": full_name,
+            "role": role if role in ("admin", "editor", "author") else "editor",
+            "password_hash": bcrypt.hashpw(password.encode(), bcrypt.gensalt(12)).decode(),
+            "disabled": False, "created_by": user.get("user_id"),
+            "created_at": now_iso(), "updated_at": now_iso(), "last_login_at": None,
+        }
+        await db.blog_users.insert_one(doc)
+        doc.pop("password_hash", None); doc.pop("_id", None)
+        return doc
+
+    @r.patch("/admin/crm/blog-users/{uid}")
+    async def blog_users_update(uid: str, payload: dict, user: dict = Depends(require_admin_dep)):
+        import bcrypt
+        upd: dict = {}
+        if "full_name" in payload: upd["full_name"] = (payload["full_name"] or "").strip() or None
+        if "email" in payload: upd["email"] = ((payload["email"] or "").strip().lower() or None)
+        if "role" in payload and payload["role"] in ("admin", "editor", "author"): upd["role"] = payload["role"]
+        if "disabled" in payload: upd["disabled"] = bool(payload["disabled"])
+        if payload.get("password"):
+            if len(payload["password"]) < 10:
+                raise HTTPException(400, "Password must be at least 10 characters")
+            upd["password_hash"] = bcrypt.hashpw(payload["password"].encode(), bcrypt.gensalt(12)).decode()
+        if not upd:
+            raise HTTPException(400, "Nothing to update")
+        upd["updated_at"] = now_iso()
+        res = await db.blog_users.update_one({"id": uid}, {"$set": upd})
+        if res.matched_count == 0:
+            raise HTTPException(404, "User not found")
+        # If disabled or password changed, invalidate active sessions
+        if upd.get("disabled") or "password_hash" in upd:
+            await db.admin_sessions.delete_many({"user_id": uid})
+        out = await db.blog_users.find_one({"id": uid}, {"_id": 0, "password_hash": 0})
+        return out
+
+    @r.delete("/admin/crm/blog-users/{uid}")
+    async def blog_users_delete(uid: str, user: dict = Depends(require_admin_dep)):
+        res = await db.blog_users.delete_one({"id": uid})
+        if res.deleted_count == 0:
+            raise HTTPException(404, "User not found")
+        await db.admin_sessions.delete_many({"user_id": uid})
+        return {"ok": True}
+
+    @r.get("/admin/crm/blog-users/sessions")
+    async def blog_users_sessions(user: dict = Depends(require_admin_dep)):
+        sess = await db.admin_sessions.find({}, {"_id": 0, "token": 0}).sort("created_at", -1).limit(50).to_list(50)
+        return {"items": sess}
+
     # ============================================================= DAILY LEAD DIGEST (cron)
     @r.post("/cron/lead-digest")
     async def cron_lead_digest(request: Request):

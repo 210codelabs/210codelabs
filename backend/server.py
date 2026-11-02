@@ -117,6 +117,7 @@ class ContactOut(BaseModel):
 
 
 class LoginIn(BaseModel):
+    username: Optional[str] = Field(default=None, max_length=120)
     password: str = Field(..., min_length=1, max_length=200)
 
 
@@ -188,19 +189,43 @@ async def require_admin(authorization: Optional[str]) -> None:
 
 @api.post("/admin/login")
 async def admin_login(body: LoginIn, request: Request):
-    if not ADMIN_PASSWORD:
-        raise HTTPException(status_code=503, detail="Admin access is not configured")
     ip = _client_ip(request)
     if _rate_limited(f"login:{ip}"):
         raise HTTPException(status_code=429, detail="Too many attempts. Please try again later.")
+    import bcrypt
+    # 1) Try database users first (preferred for day-to-day editors)
+    identifier = (getattr(body, "username", None) or "").strip().lower() or None
+    user = None
+    if identifier:
+        user = await db.blog_users.find_one({"$or": [{"username": identifier}, {"email": identifier}]})
+    if user:
+        if user.get("disabled"):
+            raise HTTPException(status_code=403, detail="This account is disabled")
+        try:
+            if not bcrypt.checkpw(body.password.encode(), user["password_hash"].encode()):
+                raise HTTPException(status_code=401, detail="Incorrect password")
+        except (ValueError, KeyError):
+            raise HTTPException(status_code=401, detail="Incorrect password")
+        token = secrets.token_urlsafe(32)
+        expires = datetime.now(timezone.utc) + timedelta(hours=SESSION_HOURS)
+        await db.admin_sessions.insert_one({"token": token, "expires_at": expires.isoformat(),
+                                            "user_id": user["id"], "username": user["username"],
+                                            "created_at": _now_iso()})
+        await db.blog_users.update_one({"id": user["id"]}, {"$set": {"last_login_at": _now_iso()}})
+        _rate.pop(f"login:{ip}", None)
+        return {"token": token, "expires_at": expires.isoformat(), "username": user["username"]}
+    # 2) Fallback to the env-configured founder password (no username required)
+    if not ADMIN_PASSWORD:
+        raise HTTPException(status_code=503, detail="Admin access is not configured")
     if not hmac.compare_digest(body.password.encode(), ADMIN_PASSWORD.encode()):
-        raise HTTPException(status_code=401, detail="Incorrect password")
+        raise HTTPException(status_code=401, detail="Incorrect credentials")
     token = secrets.token_urlsafe(32)
     expires = datetime.now(timezone.utc) + timedelta(hours=SESSION_HOURS)
-    await db.admin_sessions.insert_one({"token": token, "expires_at": expires.isoformat(), "created_at": _now_iso()})
-    # successful login clears the attempt counter
+    await db.admin_sessions.insert_one({"token": token, "expires_at": expires.isoformat(),
+                                        "user_id": "env-founder", "username": "founder",
+                                        "created_at": _now_iso()})
     _rate.pop(f"login:{ip}", None)
-    return {"token": token, "expires_at": expires.isoformat()}
+    return {"token": token, "expires_at": expires.isoformat(), "username": "founder"}
 
 
 @api.post("/admin/logout")
@@ -321,6 +346,8 @@ async def startup():
     await db.crm_activity.create_index("id", unique=True)
     await db.crm_research.create_index("id", unique=True)
     await db.crm_inbox_replies.create_index("message_id")
+    await db.blog_users.create_index("username", unique=True)
+    await db.blog_users.create_index("email", sparse=True)
 
 
 @app.on_event("shutdown")

@@ -35,6 +35,7 @@ import AdminResearchPage from "@/pages/admin/AdminResearchPage";
 import AdminAnalyticsPage from "@/pages/admin/AdminAnalyticsPage";
 import AdminAutomationsPage from "@/pages/admin/AdminAutomationsPage";
 import AdminIntegrationsPage from "@/pages/admin/AdminIntegrationsPage";
+import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
 import { captureAttribution } from "@/lib/attribution";
 
@@ -83,6 +84,7 @@ function App() {
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="automations" element={<AdminAutomationsPage />} />
             <Route path="integrations" element={<AdminIntegrationsPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
           </Route>
           {/* Legacy password-protected admin pages (preserved) */}
