@@ -1,0 +1,52 @@
+{
+  "summary": "Completed comprehensive testing of standalone booking page (/book) and regression testing of existing modal booking flows. All 38 tests passed (20 backend + 18 frontend). The /book page correctly renders the inline booking widget without modal overlay or close button, bookings are created with UTM attribution, double-booking guard works (409), and all existing modal flows remain functional.",
+  "backend_issues": {
+    "critical_bugs": [],
+    "flaky_endpoints": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Backend: GET /api/crm/booking/options returns appointment types (discovery, deep-dive, exec, onsite)",
+    "Backend: GET /api/crm/booking/slots returns 120 available slots",
+    "Backend: POST /api/crm/booking creates booking successfully with UTM parameters",
+    "Backend: POST /api/crm/booking returns 409 for double-booking (same slot)",
+    "Backend: Booking with UTM attribution stores source_page and utm object",
+    "Frontend: /book page renders with data-testid='book-page'",
+    "Frontend: Booking widget on /book is inline (no modal-mask class)",
+    "Frontend: No close button on /book inline widget",
+    "Frontend: Appointment types visible on /book",
+    "Frontend: Time slots displayed on /book (64 slots)",
+    "Frontend: Complete booking flow on /book works (select slot, fill form, submit)",
+    "Frontend: Booking confirmation appears after submission",
+    "Frontend: Done button text is 'Back to website' (not 'Close')",
+    "Frontend: 'Back to website' button navigates to homepage",
+    "Regression: /contact 'Schedule a meeting' button opens modal with close button",
+    "Regression: /contact modal has modal-mask class",
+    "Regression: /contact modal close button closes the modal",
+    "Regression: Homepage hero 'Schedule a Meeting' button opens modal",
+    "Regression: Homepage hero modal has modal-mask class",
+    "Regression: Homepage hero modal has close button",
+    "Regression: /contact?schedule=1 auto-opens booking modal",
+    "Regression: Auto-opened modal on /contact?schedule=1 has modal-mask",
+    "Regression: Auto-opened modal has close button"
+  ],
+  "test_report_links": [
+    "/app/backend/backend_test.py",
+    "/app/test_reports/iteration_7.json"
+  ],
+  "success_percentage": {
+    "backend": "100% (20/20 tests passed)",
+    "frontend": "100% (18/18 tests passed)",
+    "overall": "100% (38/38 tests passed)"
+  },
+  "updated_files": [
+    "/app/backend/backend_test.py"
+  ],
+  "action_item_for_main_agent": "",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_test_itself": false
+}

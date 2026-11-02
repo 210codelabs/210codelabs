@@ -15,7 +15,7 @@ async function pub(path, { method = "GET", body } = {}) {
   return data;
 }
 
-export default function BookingWidget({ open, onClose }) {
+export default function BookingWidget({ open, onClose, inline = false }) {
   const [options, setOptions] = useState(null);
   const [apptType, setApptType] = useState("discovery");
   const [slots, setSlots] = useState([]);
@@ -49,18 +49,18 @@ export default function BookingWidget({ open, onClose }) {
   const byDay = slots.reduce((acc, iso) => { const k = iso.slice(0, 10); (acc[k] = acc[k] || []).push(iso); return acc; }, {});
 
   return (
-    <div className="modal-mask" role="dialog" aria-modal="true" aria-labelledby="booking-title" data-testid="booking-widget">
-      <div className="modal-card modal-card--wide">
+    <div className={inline ? "booking-inline" : "modal-mask"} role={inline ? "region" : "dialog"} aria-modal={inline ? undefined : "true"} aria-labelledby="booking-title" data-testid="booking-widget">
+      <div className={inline ? "modal-card modal-card--wide booking-inline__card" : "modal-card modal-card--wide"}>
         <header className="modal-head">
           <div><span className="eyebrow">SCHEDULE</span><h2 id="booking-title">Book a conversation</h2></div>
-          <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={onClose} aria-label="Close" data-testid="booking-close-button"><X aria-hidden="true" /></button>
+          {!inline && <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={onClose} aria-label="Close" data-testid="booking-close-button"><X aria-hidden="true" /></button>}
         </header>
         {confirmation ? (
           <div className="booking-done" data-testid="booking-confirmation">
             <CheckCircle2 aria-hidden="true" />
             <h3>You’re booked</h3>
-            <p>We’ll see you on <strong>{fmtDay(confirmation.start_at)} at {fmtTime(confirmation.start_at)}</strong>. A confirmation has been noted in our system; expect an email from <strong>ernesto@210codelabs.com</strong> shortly.</p>
-            <button type="button" className="btn btn-primary btn-pill" onClick={onClose}>Close</button>
+            <p>We’ll see you on <strong>{fmtDay(confirmation.start_at)} at {fmtTime(confirmation.start_at)}</strong>. Your booking is saved, and our team will follow up from <strong>ernesto@210codelabs.com</strong> to confirm the details.</p>
+            <button type="button" className="btn btn-primary btn-pill" onClick={onClose} data-testid="booking-done-button">{inline ? "Back to website" : "Close"}</button>
           </div>
         ) : !options ? <p><Loader2 className="spin" aria-hidden="true" /> Loading availability…</p> : (
           <form onSubmit={submit} className="booking-form">
@@ -96,7 +96,7 @@ export default function BookingWidget({ open, onClose }) {
             {error && <p className="form-status form-status--error" role="alert">{error}</p>}
             <div className="form-actions">
               <button type="submit" className="btn btn-primary btn-pill" disabled={status === "submitting" || !slot} data-testid="booking-submit-button">{status === "submitting" ? <><Loader2 className="spin" aria-hidden="true" /> Booking…</> : "Confirm booking"}</button>
-              <button type="button" className="btn btn-secondary btn-pill" onClick={onClose}>Cancel</button>
+              {!inline && <button type="button" className="btn btn-secondary btn-pill" onClick={onClose}>Cancel</button>}
             </div>
           </form>
         )}
