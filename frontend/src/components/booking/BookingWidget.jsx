@@ -59,7 +59,7 @@ export default function BookingWidget({ open, onClose, inline = false }) {
           <div className="booking-done" data-testid="booking-confirmation">
             <CheckCircle2 aria-hidden="true" />
             <h3>You’re booked</h3>
-            <p>We’ll see you on <strong>{fmtDay(confirmation.start_at)} at {fmtTime(confirmation.start_at)}</strong>. Your booking is saved, and our team will follow up from <strong>ernesto@210codelabs.com</strong> to confirm the details.</p>
+            <p>We’ll see you on <strong>{fmtDay(confirmation.start_at)} at {fmtTime(confirmation.start_at)}</strong>. A confirmation email with a link to reschedule or cancel is on its way to <strong>{form.email}</strong>.</p>
             <button type="button" className="btn btn-primary btn-pill" onClick={onClose} data-testid="booking-done-button">{inline ? "Back to website" : "Close"}</button>
           </div>
         ) : !options ? <p><Loader2 className="spin" aria-hidden="true" /> Loading availability…</p> : (

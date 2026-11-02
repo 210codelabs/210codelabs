@@ -77,7 +77,7 @@ const CONTENT = {
 export default function LegalPage() {
   const { slug } = useParams();
   const page = CONTENT[slug];
-  useSeo(page ? { title: page.title } : { title: "Not found" });
+  useSeo(page ? { title: page.title } : { title: "Not found", noindex: true });
   if (!page) return <NotFoundPage />;
   return (
     <div data-testid={`legal-page-${slug}`}>

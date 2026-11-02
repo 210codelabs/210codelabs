@@ -1,0 +1,40 @@
+{
+  "summary": "Completed comprehensive end-to-end testing of Booking Emails + Self-Service Manage Booking feature. All backend APIs and frontend flows validated successfully.",
+  "backend_issues": {
+    "critical_bugs": [],
+    "flaky_endpoints": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "POST /api/crm/booking - Creates appointment with long random manage_token, returns ok + appointment_id, confirmation email recorded",
+    "GET /api/crm/booking/slots - Returns list of ISO slot strings for available times",
+    "GET /api/crm/booking/manage/{token} - Returns public view fields (appt_type, type_label, duration_minutes, modality, start_at, end_at, status, name, when_label), 404 for bogus tokens",
+    "POST /api/crm/booking/manage/{token}/reschedule - Updates start_at/end_at, records rescheduled_at, clears reminder_sent_at, schedules rescheduled email, rejects past times (400) and clashing times (409)",
+    "POST /api/crm/booking/manage/{token}/cancel - Sets status=cancelled, prevents further reschedules (400)",
+    "POST /api/cron/booking-reminders - Requires Bearer WEBHOOK_CRON_SECRET (401 without), returns {ok, checked, sent}, no double-send guarantee verified",
+    "Frontend /book/manage/:token - Page renders with data-testid='manage-booking-page'",
+    "Frontend - Shows appointment summary (manage-summary) with type, duration, modality, time",
+    "Frontend - Shows status badge (manage-status)",
+    "Frontend - Shows 'Pick a new time' and 'Cancel meeting' buttons",
+    "Frontend - Reschedule flow: loads slot grid (manage-slot-grid), selects slot, confirms new time, shows success notice",
+    "Frontend - Cancel flow: confirms cancellation, updates status to cancelled, hides action buttons, shows cancellation notice",
+    "Frontend - Invalid token shows proper error message"
+  ],
+  "test_report_links": [
+    "/app/backend_test.py"
+  ],
+  "success_percentage": {
+    "backend": "100% (6/6 tests passed)",
+    "frontend": "100% (7/7 flows validated)"
+  },
+  "updated_files": [
+    "/app/backend_test.py"
+  ],
+  "action_item_for_main_agent": "",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_test_itself": false
+}

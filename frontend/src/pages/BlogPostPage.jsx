@@ -1,24 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, Clock, Sparkles } from "lucide-react";
-import { useSeo } from "@/hooks/useSeo";
+import { useJsonLd, useSeo } from "@/hooks/useSeo";
 import { API_BASE, SITE } from "@/config/site";
 import { PageHero } from "@/components/site/PageHero";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { PostCard, fmtDate, imgUrl } from "@/pages/BlogPage";
-
-function useJsonLd(id, data) {
-  useEffect(() => {
-    if (!data) return undefined;
-    const el = document.createElement("script");
-    el.type = "application/ld+json";
-    el.id = id;
-    el.text = JSON.stringify(data);
-    document.head.appendChild(el);
-    return () => el.remove();
-  }, [id, data]);
-}
 
 export default function BlogPostPage() {
   const { slug } = useParams();
@@ -35,7 +23,12 @@ export default function BlogPostPage() {
       .catch((e) => setStatus(e === 404 ? "missing" : "error"));
   }, [slug]);
 
-  useSeo(post ? { title: post.meta_title || post.title, description: post.meta_description } : { title: "Blog" });
+  useSeo(post ? {
+    title: post.meta_title || post.title,
+    description: post.meta_description,
+    image: post.cover_url ? imgUrl(post.cover_url) : undefined,
+    type: "article",
+  } : { title: "Blog" });
 
   const url = typeof window !== "undefined" ? window.location.href.split("#")[0] : "";
   const ld = post && {

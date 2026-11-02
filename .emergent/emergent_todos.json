@@ -1,14 +1,26 @@
 [
   {
-    "content": "Back-to-top floating button on all pages",
-    "status": "in_progress"
+    "content": "Phase 5: Run end-to-end test on booking confirmation email + manage page (reschedule/cancel) + 24h reminder cron",
+    "status": "completed"
   },
   {
-    "content": "Rank Tracking — track each published post's focus keyword daily via DataForSEO SERP + Analytics card",
-    "status": "pending"
+    "content": "Phase 6: SEO on-page basics (titles, meta descriptions, canonicals, H1 hierarchy, alt text, internal links)",
+    "status": "completed"
   },
   {
-    "content": "Qualification Follow-ups — Concierge collects budget / timeline / stack before saving the lead",
-    "status": "pending"
+    "content": "Phase 6: Structured data JSON-LD (Organization/LocalBusiness, WebSite, BlogPosting, BreadcrumbList)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 6: Crawl + indexation (sitemap.xml, robots.txt, noindex on private pages)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 6: Social previews (OG + Twitter card tags per page)",
+    "status": "completed"
+  },
+  {
+    "content": "Final regression test after SEO changes",
+    "status": "completed"
   }
 ]

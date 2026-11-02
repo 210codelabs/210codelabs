@@ -305,20 +305,25 @@ def build_router(db, require_admin_dep) -> APIRouter:
             raise HTTPException(400, "Unknown appointment type")
         settings = await _get_settings(db)
         hours = settings.get("working_hours") or {"days": [1, 2, 3, 4, 5], "start": "09:00", "end": "17:00"}
-        tz = timezone(timedelta(hours=-6))  # America/Chicago approximate (DST handled client-side)
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("America/Chicago")  # real business timezone (handles daylight saving)
         now_local = datetime.now(tz)
         start_day = (now_local + timedelta(hours=4)).replace(minute=0, second=0, microsecond=0)
         start_h, start_m = [int(x) for x in hours["start"].split(":")]
         end_h, end_m = [int(x) for x in hours["end"].split(":")]
         day_set = set(hours.get("days") or [1, 2, 3, 4, 5])
         duration = t["minutes"]
-        # Pull existing scheduled appointments to mask busy times
-        future_iso = now_local.isoformat()
+        # Pull scheduled appointments to mask busy times (compare parsed datetimes, not strings)
         existing = await db.crm_appointments.find(
-            {"status": "scheduled", "start_at": {"$gte": future_iso}},
-            {"_id": 0, "start_at": 1, "end_at": 1},
-        ).to_list(500)
-        busy = [(datetime.fromisoformat(a["start_at"]), datetime.fromisoformat(a["end_at"])) for a in existing]
+            {"status": "scheduled"}, {"_id": 0, "start_at": 1, "end_at": 1},
+        ).to_list(2000)
+        busy = []
+        for a in existing:
+            try:
+                bs, be = datetime.fromisoformat(a["start_at"]), datetime.fromisoformat(a["end_at"])
+            except Exception:
+                continue
+            busy.append((bs if bs.tzinfo else bs.replace(tzinfo=timezone.utc), be if be.tzinfo else be.replace(tzinfo=timezone.utc)))
 
         slots = []
         for i in range(days):
@@ -340,7 +345,8 @@ def build_router(db, require_admin_dep) -> APIRouter:
         return {"slots": slots[:120], "duration_minutes": duration}
 
     @r.post("/crm/booking")
-    async def booking_create(body: AppointmentIn, request: Request):
+    async def booking_create(body: AppointmentIn, request: Request, background: BackgroundTasks):
+        from booking_emails import has_clash, new_manage_token, resolve_site_url, send_confirmation
         t = next((x for x in APPT_TYPES if x["id"] == body.appt_type), None)
         if not t:
             raise HTTPException(400, "Unknown appointment type")
@@ -353,13 +359,8 @@ def build_router(db, require_admin_dep) -> APIRouter:
         if start <= datetime.now(timezone.utc) + timedelta(hours=1):
             raise HTTPException(400, "Please choose a time at least an hour from now")
         end = start + timedelta(minutes=t["minutes"])
-        # Double-booking guard
-        clash = await db.crm_appointments.find_one({
-            "status": "scheduled",
-            "start_at": {"$lt": end.isoformat()},
-            "end_at": {"$gt": start.isoformat()},
-        })
-        if clash:
+        # Double-booking guard (timezone-safe)
+        if await has_clash(db, start, end):
             raise HTTPException(409, "This time was just booked by someone else — please pick another slot.")
         contact = await _upsert_contact(db, name=body.name, email=body.email, phone=body.phone,
                                          company_name=body.company, source="booking-widget")
@@ -372,6 +373,7 @@ def build_router(db, require_admin_dep) -> APIRouter:
             "name": body.name, "email": body.email, "phone": body.phone, "company": body.company,
             "notes": body.notes, "source_page": body.source_page or "/contact",
             "utm": body.utm or {}, "created_at": now_iso(), "updated_at": now_iso(),
+            "manage_token": new_manage_token(), "site_url": resolve_site_url(request),
         }
         await db.crm_appointments.insert_one(appt)
         # Attach lead if none exists for this contact
@@ -390,7 +392,8 @@ def build_router(db, require_admin_dep) -> APIRouter:
                             contact_id=contact["id"], lead_id=lid, appt_id=aid)
         await _activity(db, "appointment.booked", f"{t['label']} with {body.name}",
                         contact_id=contact["id"], appt_id=aid, meta={"start_at": appt["start_at"]})
-        return {"ok": True, "appointment_id": aid, "start_at": appt["start_at"], "end_at": appt["end_at"]}
+        background.add_task(send_confirmation, db, aid)
+        return {"ok": True, "appointment_id": aid, "start_at": appt["start_at"], "end_at": appt["end_at"], "confirmation_email": "queued"}
 
     # ============================================================= ADMIN: DASHBOARD
     @r.get("/admin/crm/me")
@@ -1039,7 +1042,7 @@ async def _build_digest(db):
     }
     date_label = now.strftime("%A, %B %d, %Y")
     subject = f"210Codelabs daily brief \u2014 {counts['new_leads']} new, {counts['today_meetings']} meeting(s) today"
-    workspace_url = "https://bright-tomorrow-lab--3vgwcyhh.preview.emergentagent.com/admin"
+    workspace_url = (os.environ.get("PUBLIC_SITE_URL") or "https://210codelabs.com").rstrip("/") + "/admin"
 
     def section(title: str, rows: list[str]) -> str:
         inner = "".join(rows) if rows else '<tr><td style="padding:10px 0;color:#687186">Nothing to report.</td></tr>'

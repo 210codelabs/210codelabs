@@ -21,3 +21,10 @@ crons:
     endpoint: "{{BASE_URL}}/api/cron/rank-check"
     method: POST
     enabled: true
+  - name: booking-reminders
+    description: "Emails each visitor a reminder about 24 hours before their scheduled meeting"
+    cron: "0 * * * *"
+    timezone: "America/Chicago"
+    endpoint: "{{BASE_URL}}/api/cron/booking-reminders"
+    method: POST
+    enabled: true

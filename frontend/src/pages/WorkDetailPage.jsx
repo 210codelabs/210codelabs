@@ -10,7 +10,7 @@ export default function WorkDetailPage() {
   const { slug } = useParams();
   const idx = CASES.findIndex((c) => c.slug === slug);
   const c = CASES[idx];
-  useSeo(c ? { title: c.title, description: c.text } : { title: "Not found" });
+  useSeo(c ? { title: c.title, description: c.text, image: c.image } : { title: "Not found", noindex: true });
   if (!c) return <NotFoundPage />;
   const prev = CASES[(idx - 1 + CASES.length) % CASES.length];
   const next = CASES[(idx + 1) % CASES.length];

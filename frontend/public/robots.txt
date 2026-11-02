@@ -1,3 +1,15 @@
+# 210Codelabs Corporation — crawler directives
 User-agent: *
 Allow: /
+
+# Private areas (admin workspace, legacy admin pages, auth, tokenized self-service)
 Disallow: /admin/
+Disallow: /admin
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /book/manage/
+
+# Backend-only (not meant for direct crawling)
+Disallow: /api/
+
+Sitemap: https://210codelabs.com/api/sitemap.xml

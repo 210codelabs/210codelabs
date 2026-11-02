@@ -313,6 +313,11 @@ from concierge import build_router as build_concierge_router  # noqa: E402
 
 app.include_router(build_concierge_router(db, _upsert_contact, score_lead, ingest_contact_message))
 
+# Visitor booking emails: confirmation, manage (reschedule/cancel), 24h reminders
+from booking_emails import build_router as build_booking_emails_router  # noqa: E402
+
+app.include_router(build_booking_emails_router(db))
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -343,6 +348,7 @@ async def startup():
     await db.crm_tasks.create_index("id", unique=True)
     await db.crm_appointments.create_index("id", unique=True)
     await db.crm_appointments.create_index([("status", 1), ("start_at", 1)])
+    await db.crm_appointments.create_index("manage_token", unique=True, sparse=True)
     await db.crm_activity.create_index("id", unique=True)
     await db.crm_research.create_index("id", unique=True)
     await db.crm_inbox_replies.create_index("message_id")

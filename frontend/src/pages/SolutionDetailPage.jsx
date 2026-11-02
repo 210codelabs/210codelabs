@@ -12,7 +12,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 export default function SolutionDetailPage() {
   const { slug } = useParams();
   const s = SOLUTIONS.find((x) => x.slug === slug && !x.pending);
-  useSeo(s ? { title: `${s.name} — ${s.category}`, description: s.summary } : { title: "Not found" });
+  useSeo(s ? { title: `${s.name} — ${s.category}`, description: s.summary } : { title: "Not found", noindex: true });
   if (!s) return <NotFoundPage />;
   const track = TRACKS.find((t) => t.id === s.track);
   const live = SOLUTIONS.filter((x) => !x.pending);

@@ -13,6 +13,7 @@ import BlogPage from "@/pages/BlogPage";
 import BlogPostPage from "@/pages/BlogPostPage";
 import ContactPage from "@/pages/ContactPage";
 import BookPage from "@/pages/BookPage";
+import ManageBookingPage from "@/pages/ManageBookingPage";
 import LegalPage from "@/pages/LegalPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AdminMessagesPage from "@/pages/AdminMessagesPage";
@@ -64,6 +65,7 @@ function App() {
             <Route path="blog/:slug" element={<BlogPostPage />} />
             <Route path="contact" element={<ContactPage />} />
             <Route path="book" element={<BookPage />} />
+            <Route path="book/manage/:token" element={<ManageBookingPage />} />
             <Route path="legal/:slug" element={<LegalPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>

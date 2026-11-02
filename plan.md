@@ -1,9 +1,21 @@
-# 210Codelabs Corporate Website — plan
+# 210Codelabs Corporate Website — plan (updated)
 
 ## 1) Objectives
-- Deliver an English corporate website in **React (CRA, JS)** + **FastAPI** + **MongoDB** that matches `reference-homepage-approved.png` with high visual fidelity and strong responsive behavior.
-- Implement the **core workflow** end-to-end: visitor submits contact form → backend validates → stores in MongoDB → admin can read messages in a protected inbox.
-- Build required pages/routes (home + secondary placeholders) with **no invented claims**; add SEO, accessibility (WCAG AA), focus states, reduced-motion support.
+- Maintain and extend the existing **React (CRA, JS)** + **FastAPI** + **MongoDB** platform for 210Codelabs.
+- Ensure the **booking workflow** is fully operational end-to-end:
+  - Visitor books → **confirmation email** sent with a private manage link.
+  - Visitor can **reschedule/cancel** via `/book/manage/:token`.
+  - System sends a **24-hour reminder email** (cron) to reduce no-shows.
+- Implement and validate a **Google SEO + indexation** pass focused on:
+  - **On-page basics** (titles, meta descriptions, canonical, headings, alt text, internal linking).
+  - **Structured data (JSON-LD)**.
+  - **Crawl/indexation** (sitemap.xml, robots.txt, noindex rules for private pages).
+  - **Social previews** (Open Graph + Twitter cards).
+- Keep everything in **English**.
+
+**Current status (as of iteration_8 + iteration_9 tests):**
+- Booking emails + self-serve manage flow: **COMPLETED and verified (100% pass)**.
+- SEO/indexation + social previews: **COMPLETED and verified (100% pass)**.
 
 ---
 
@@ -29,6 +41,8 @@ Steps:
 - Fix until the script is consistently green.
 
 Deliverable: proven backend + DB persistence + admin read API.
+
+**Status:** DONE.
 
 ---
 
@@ -65,6 +79,8 @@ Steps (build in as few large edits as feasible):
 Conclude Phase 2:
 - Run the testing agent for one full E2E pass: navigation, responsive menu, work pages, contact submit stored, admin inbox reads.
 
+**Status:** DONE.
+
 ---
 
 ### Phase 3 — Hardening, polish, and content placeholders (2nd test)
@@ -85,6 +101,8 @@ Steps:
 Conclude Phase 3:
 - Testing agent: regression on core flows + accessibility checks (keyboard, ARIA labels, contrast sanity).
 
+**Status:** DONE.
+
 ---
 
 ### Phase 4 — Optional enhancements (only after approval)
@@ -99,24 +117,115 @@ Steps:
 - Add message status fields, CSV export endpoint, simple UI.
 - Refactor into reusable components (Section, Card, CTA, Band, Container) without changing visuals.
 
+**Status:** OPTIONAL / NOT STARTED (no request pending).
+
+---
+
+### Phase 5 — Booking emails + self-serve manage flow (P0)
+User stories:
+1. As a visitor, after I book, I immediately receive a **confirmation email** with meeting details and a manage link.
+2. As a visitor, I can open the manage link to **view**, **reschedule**, or **cancel** my meeting without logging in.
+3. As a visitor, I receive a **24-hour reminder email** before the meeting.
+4. As the business, we do not double-send reminders, and email failures do not break booking creation.
+
+Implementation + verification steps:
+- Backend wiring validation:
+  - Booking creation triggers confirmation email in background (`send_confirmation`).
+  - Every appointment has an unguessable `manage_token`.
+  - Public manage endpoints (token-keyed):
+    - `GET /api/crm/booking/manage/{token}`
+    - `POST /api/crm/booking/manage/{token}/reschedule`
+    - `POST /api/crm/booking/manage/{token}/cancel`
+  - Reminder cron endpoint:
+    - `POST /api/cron/booking-reminders` (Bearer `WEBHOOK_CRON_SECRET`) calls reminder logic.
+    - Reminder logic claims appointments first to prevent double-send; sets `reminder_sent_at`.
+- Frontend wiring validation:
+  - Route exists and loads: `/book/manage/:token`.
+  - `ManageBookingPage.jsx` supports view/reschedule/cancel and is `noindex`.
+- End-to-end testing (both):
+  1. Create booking from public booking UI.
+  2. Confirm appointment includes `manage_token` and confirmation email send record.
+  3. Open manage link and reschedule; verify new time + rescheduled email queued.
+  4. Cancel booking; verify status update and UI.
+  5. Trigger reminder cron; verify single reminder send per appointment.
+
+Deliverable: fully verified booking confirmation + reschedule/cancel + 24h reminders.
+
+**Status:** COMPLETED.
+- Verified by testing agent: **iteration_8 (100% pass)**.
+- Key behaviors validated:
+  - Confirmation email is queued and recorded per appointment.
+  - Manage page works for reschedule/cancel.
+  - Reminder cron is auth-protected, sends reminders for meetings 1–24 hours away, and prevents duplicate sends.
+
+---
+
+### Phase 6 — Google SEO + indexation pass (P1)
+Scope explicitly included (per user): **On-page basics**, **Structured data (JSON-LD)**, **Crawl/indexation**, **Social previews**.
+(Core Web Vitals performance work intentionally skipped.)
+
+User stories:
+1. As Google, I can crawl and index public pages and blog posts effectively.
+2. As a user, search results show correct titles/descriptions and rich enhancements where applicable.
+3. As social platforms, link previews render correct OG/Twitter title/description/image.
+
+Implementation steps:
+- On-page basics:
+  - Ensure each public route has unique `<title>` and `<meta name="description">`.
+  - Add/verify canonical URLs for indexable public pages.
+  - Ensure private/tokenized routes apply `noindex, nofollow` and do **not** emit canonical.
+- Structured data (JSON-LD):
+  - Keep site-wide `Organization` JSON-LD.
+  - Add `WebSite` JSON-LD on homepage.
+  - Blog articles emit JSON-LD `@graph` including `BlogPosting`, `BreadcrumbList`, and `FAQPage` when FAQ exists.
+- Crawl + indexation:
+  - Sitemap: `/api/sitemap.xml` includes public marketing pages, `/book`, static work case studies, legal pages, and all published blog posts.
+  - Robots:
+    - Hardened `public/robots.txt` with disallows + sitemap.
+    - Added dynamic `/api/robots.txt` with the same directives and environment-aware sitemap URL.
+  - Private areas excluded from crawling: `/admin*`, `/sign-in`, `/sign-up`, `/book/manage/*`, `/api/*`.
+- Social previews:
+  - `useSeo` emits Open Graph and Twitter cards.
+  - Homepage uses a real hero image for OG/Twitter preview.
+  - Blog articles use cover image for OG/Twitter preview and set `og:type=article`.
+
+Conclude Phase 6:
+- Test pass validates:
+  - Meta tags per route (title/description/robots/canonical/OG/Twitter).
+  - JSON-LD presence and structure.
+  - Sitemap and robots endpoints.
+
+**Status:** COMPLETED.
+- Verified by testing agent: **iteration_9 (100% pass)**.
+
 ---
 
 ## Status (updated)
-- Phase 1 (contact → MongoDB → admin API): DONE, verified via curl.
-- Phase 2 (full site, all pages, admin inbox UI, responsive, SEO): DONE. Testing agent iteration_1: backend 15/15, frontend 100%.
-- Phase 3 items already included: scroll-spy, admin search/filter/pagination, honeypot, rate limit, reduced motion.
-- Pending: official SVG logo swap, real company/legal content when supplied.
+- Phase 1 (contact → MongoDB → admin API): DONE.
+- Phase 2 (full site, all pages, admin inbox UI, responsive): DONE.
+- Phase 3 (hardening/polish/accessibility improvements): DONE.
+- CRM Add-On, AI Concierge, daily blog engine, lead digest, and legacy admin user management: DONE.
+- Phase 5 (booking confirmation + manage + reminders): **DONE + VERIFIED (iteration_8)**.
+- Phase 6 (SEO/indexation improvements): **DONE + VERIFIED (iteration_9)**.
 
 ## 3) Next Actions
-- Set up backend models/endpoints + Mongo connection and implement Phase 1 POC test script.
-- Once POC passes, implement homepage layout + routing skeleton + contact/admin UI in one cohesive V1 build.
-- Run testing agent at end of Phase 2 and Phase 3; iterate on failures.
-
----
+With both Phase 5 and Phase 6 complete, the remaining work is optional/future-facing:
+1. (Optional) **Core Web Vitals / performance** improvements (fonts/images, bundle splitting) if desired.
+2. (Optional) Submit/verify in **Google Search Console**:
+   - Add property, verify domain.
+   - Submit sitemap URL: `/api/sitemap.xml`.
+   - Monitor coverage, indexing issues, and rich result enhancements.
+3. (Optional) SEO content strategy iterations (blog topic seeds, internal linking improvements, landing pages).
 
 ## 4) Success Criteria
-- Contact core workflow proven: submit → stored in MongoDB → visible in admin inbox (password protected).
-- Homepage matches reference layout closely across desktop/tablet/mobile; required sections present with correct assets.
-- No invented claims/partners beyond allowed text wordmarks; policies and secondary pages are honest placeholders.
-- Accessibility: keyboard navigable, visible focus, reduced-motion support, semantic HTML, form errors accessible.
-- Performance: images optimized (webp) and responsive; no major layout shifts.
+- Booking flow:
+  - Booking triggers a confirmation email with correct meeting details and working `/book/manage/:token` link.
+  - Visitor can reschedule/cancel successfully; reschedule sends updated email.
+  - Reminders send once per appointment ~24 hours before, without duplicates.
+- SEO/indexation:
+  - Unique titles/descriptions, correct robots directives.
+  - Canonicals present for indexable pages and absent for `noindex` pages.
+  - Valid JSON-LD for Organization/WebSite and BlogPosting (plus Breadcrumb/FAQ where applicable).
+  - Working `/api/sitemap.xml` and `/api/robots.txt` (and hardened `public/robots.txt`) with correct inclusions/exclusions.
+  - Correct OG/Twitter tags with sensible images and descriptions.
+- No regressions to existing public site, CRM admin, blog engine, or legacy admin areas.
