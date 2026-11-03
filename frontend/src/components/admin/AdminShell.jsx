@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Show, UserButton, useAuth, useUser } from "@clerk/react";
 import {
   LayoutDashboard, Users, Building2, Kanban, Target, Inbox, Calendar, CalendarCheck,
-  CheckSquare, Search, BarChart3, Workflow, Plug, Settings, Mail, FileText, LogIn, UserCog,
+  CheckSquare, Search, BarChart3, Workflow, Plug, Settings, Mail, FileText, LogIn, UserCog, Award,
 } from "lucide-react";
 import { Logo } from "@/components/site/Logo";
 import { useAdminApi } from "@/hooks/useAdminApi";
@@ -25,6 +25,7 @@ const NAV = [
   { to: "/admin/automations", label: "Automations", icon: Workflow, testId: "admin-nav-automations" },
   { to: "/admin/integrations", label: "Integrations", icon: Plug, testId: "admin-nav-integrations" },
   { to: "/admin/users", label: "User Management", icon: UserCog, testId: "admin-nav-users" },
+  { to: "/admin/badges", label: "OpenBadges", icon: Award, testId: "admin-nav-badges", superadmin: true },
   { to: "/admin/settings", label: "Settings", icon: Settings, testId: "admin-nav-settings" },
 ];
 
@@ -53,13 +54,18 @@ export default function AdminShell() {
   const navigate = useNavigate();
   const api = useAdminApi();
   const [status, setStatus] = useState("checking");
+  const [isSuper, setIsSuper] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) { navigate("/sign-in", { replace: true }); return; }
     let cancelled = false;
     api("/admin/crm/me")
-      .then(() => { if (!cancelled) setStatus("ok"); })
+      .then(() => {
+        if (cancelled) return;
+        setStatus("ok");
+        api("/admin/badges/access").then(() => { if (!cancelled) setIsSuper(true); }).catch(() => {});
+      })
       .catch((e) => { if (!cancelled) setStatus(e.status === 403 ? "forbidden" : "error"); });
     return () => { cancelled = true; };
   }, [isLoaded, isSignedIn, api, navigate]);
@@ -83,7 +89,7 @@ export default function AdminShell() {
         <div className="adminx__brand"><Logo testId="admin-shell-logo" variant="light" /></div>
         <nav>
           <ul className="adminx__nav">
-            {NAV.map(({ to, label, icon: Icon, end, testId }) => (
+            {NAV.filter((n) => !n.superadmin || isSuper).map(({ to, label, icon: Icon, end, testId }) => (
               <li key={to}>
                 <NavLink to={to} end={end} className={({ isActive }) => `adminx__link ${isActive ? "is-active" : ""}`} data-testid={testId}>
                   <Icon aria-hidden="true" /> <span>{label}</span>

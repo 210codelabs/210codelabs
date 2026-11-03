@@ -497,10 +497,241 @@ class BookingEmailsTester:
             assert response.status_code == 404, "Non-existent slug should return 404"
             print(f"✓ Non-existent slug correctly returns 404")
 
+    async def test_badges_issuer(self):
+        """Test GET /api/badges/issuer returns Issuer JSON."""
+        import httpx
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(f"{self.base_url}/badges/issuer")
+            
+            print(f"Status: {response.status_code}")
+            data = response.json()
+            
+            assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+            assert data.get("type") == "Issuer", "type should be Issuer"
+            assert "@context" in data, "Should have @context"
+            assert "id" in data, "Should have id"
+            assert "name" in data, "Should have name"
+            assert data["name"] == "210Codelabs Corporation", "Issuer name should be 210Codelabs Corporation"
+            
+            print(f"✓ Issuer JSON valid: {data['name']}")
+
+    async def test_badges_classes(self):
+        """Test GET /api/badges/classes/{slug} for all three badges."""
+        import httpx
+        
+        badges = [
+            ("bachelor-computer-engineering-usces", "Bachelor's Degree in Computer Engineering"),
+            ("master-innovation-management-usces", "Master of Science in Innovation and Management"),
+            ("phd-candidate-technology-innovation-management", "Ph.D. Candidate")
+        ]
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for slug, expected_name_part in badges:
+                response = await client.get(f"{self.base_url}/badges/classes/{slug}")
+                
+                print(f"\nTesting badge class: {slug}")
+                print(f"Status: {response.status_code}")
+                
+                assert response.status_code == 200, f"Expected 200 for {slug}, got {response.status_code}"
+                
+                data = response.json()
+                assert data.get("type") == "BadgeClass", "type should be BadgeClass"
+                assert "@context" in data, "Should have @context"
+                assert "id" in data, "Should have id"
+                assert "name" in data, "Should have name"
+                assert expected_name_part in data["name"], f"Name should contain {expected_name_part}"
+                assert "description" in data, "Should have description"
+                assert "image" in data, "Should have image URL"
+                assert "criteria" in data, "Should have criteria"
+                assert "issuer" in data, "Should have issuer URL"
+                
+                # Privacy check: no DOB or student ID
+                full_json = str(data)
+                assert "1977-09-29" not in full_json, "Should not contain DOB (1977-09-29)"
+                assert "September 29, 1977" not in full_json, "Should not contain DOB text"
+                assert "8006239593" not in full_json, "Should not contain student ID"
+                
+                print(f"✓ Badge class valid: {data['name'][:50]}...")
+                
+                # PhD badge specific check
+                if "phd" in slug:
+                    criteria_text = str(data.get("criteria", {}))
+                    description = data.get("description", "")
+                    assert "not been conferred" in criteria_text or "not yet conferred" in criteria_text or "not been conferred" in description or "not yet conferred" in description, \
+                        "PhD badge must state degree not conferred"
+                    print(f"✓ PhD badge correctly states degree not conferred")
+            
+            # Test 404 for unknown slug
+            response = await client.get(f"{self.base_url}/badges/classes/unknown-badge-slug")
+            assert response.status_code == 404, "Unknown slug should return 404"
+            print(f"\n✓ Unknown slug correctly returns 404")
+
+    async def test_badges_assertions(self):
+        """Test GET /api/badges/assertions/{aid} for all three badges."""
+        import httpx
+        
+        assertions = [
+            ("26ce7f3d-4dca-54b2-8dbf-9eea1af888aa", "bachelor"),
+            ("6b0bc72a-ffec-5a0c-9d8d-1d8c310a35a7", "master"),
+            ("092afa88-01cc-53ff-8633-348217e4e816", "phd")
+        ]
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for aid, badge_type in assertions:
+                response = await client.get(f"{self.base_url}/badges/assertions/{aid}")
+                
+                print(f"\nTesting assertion: {aid} ({badge_type})")
+                print(f"Status: {response.status_code}")
+                
+                assert response.status_code == 200, f"Expected 200 for {aid}, got {response.status_code}"
+                
+                data = response.json()
+                assert data.get("type") == "Assertion", "type should be Assertion"
+                assert "@context" in data, "Should have @context"
+                assert "id" in data, "Should have id"
+                assert "recipient" in data, "Should have recipient"
+                assert "badge" in data, "Should have badge URL"
+                assert "verification" in data, "Should have verification"
+                assert data["verification"].get("type") == "hosted", "verification.type should be hosted"
+                
+                # Check recipient hashing
+                recipient = data["recipient"]
+                assert recipient.get("type") == "email", "recipient.type should be email"
+                assert recipient.get("hashed") is True, "recipient.hashed should be True"
+                assert "salt" in recipient, "Should have salt"
+                assert "identity" in recipient, "Should have identity"
+                assert recipient["identity"].startswith("sha256$"), "identity should start with sha256$"
+                
+                # Privacy check
+                full_json = str(data)
+                assert "1977-09-29" not in full_json, "Should not contain DOB"
+                assert "September 29, 1977" not in full_json, "Should not contain DOB text"
+                assert "8006239593" not in full_json, "Should not contain student ID"
+                assert "ernesto@210codelabs.com" not in full_json, "Should not contain plain email (should be hashed)"
+                
+                print(f"✓ Assertion valid with hosted verification and hashed recipient")
+            
+            # Test 404 for unknown aid
+            response = await client.get(f"{self.base_url}/badges/assertions/bogus-aid-12345")
+            assert response.status_code == 404, "Unknown aid should return 404"
+            print(f"\n✓ Unknown aid correctly returns 404")
+
+    async def test_badges_images(self):
+        """Test GET /api/badges/images/{slug}.png returns PNG images."""
+        import httpx
+        
+        slugs = [
+            "bachelor-computer-engineering-usces",
+            "master-innovation-management-usces",
+            "phd-candidate-technology-innovation-management"
+        ]
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for slug in slugs:
+                response = await client.get(f"{self.base_url}/badges/images/{slug}.png")
+                
+                print(f"\nTesting image: {slug}")
+                print(f"Status: {response.status_code}")
+                print(f"Content-Type: {response.headers.get('content-type')}")
+                
+                assert response.status_code == 200, f"Expected 200 for {slug}, got {response.status_code}"
+                assert "image/png" in response.headers.get("content-type", ""), "Content-Type should be image/png"
+                assert len(response.content) > 1000, "Image should have substantial size"
+                
+                print(f"✓ Image valid: {len(response.content)} bytes")
+            
+            # Test 404 for unknown slug
+            response = await client.get(f"{self.base_url}/badges/images/unknown-badge.png")
+            assert response.status_code == 404, "Unknown slug should return 404"
+            print(f"\n✓ Unknown image slug correctly returns 404")
+
+    async def test_badges_baked_png(self):
+        """Test GET /api/badges/assertions/{aid}/baked.png returns PNG with metadata."""
+        import httpx
+        
+        aids = [
+            "26ce7f3d-4dca-54b2-8dbf-9eea1af888aa",
+            "6b0bc72a-ffec-5a0c-9d8d-1d8c310a35a7",
+            "092afa88-01cc-53ff-8633-348217e4e816"
+        ]
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for aid in aids:
+                response = await client.get(f"{self.base_url}/badges/assertions/{aid}/baked.png")
+                
+                print(f"\nTesting baked PNG: {aid}")
+                print(f"Status: {response.status_code}")
+                print(f"Content-Type: {response.headers.get('content-type')}")
+                
+                assert response.status_code == 200, f"Expected 200 for {aid}, got {response.status_code}"
+                assert "image/png" in response.headers.get("content-type", ""), "Content-Type should be image/png"
+                assert len(response.content) > 1000, "Baked image should have substantial size"
+                assert "attachment" in response.headers.get("content-disposition", ""), "Should have attachment disposition"
+                
+                print(f"✓ Baked PNG valid: {len(response.content)} bytes")
+            
+            # Test 404 for unknown aid
+            response = await client.get(f"{self.base_url}/badges/assertions/bogus-aid/baked.png")
+            assert response.status_code == 404, "Unknown aid should return 404"
+            print(f"\n✓ Unknown aid correctly returns 404")
+
+    async def test_badges_public(self):
+        """Test GET /api/badges/public/{aid} returns public view data."""
+        import httpx
+        
+        assertions = [
+            ("26ce7f3d-4dca-54b2-8dbf-9eea1af888aa", "bachelor"),
+            ("6b0bc72a-ffec-5a0c-9d8d-1d8c310a35a7", "master"),
+            ("092afa88-01cc-53ff-8633-348217e4e816", "phd")
+        ]
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for aid, badge_type in assertions:
+                response = await client.get(f"{self.base_url}/badges/public/{aid}")
+                
+                print(f"\nTesting public view: {aid} ({badge_type})")
+                print(f"Status: {response.status_code}")
+                
+                assert response.status_code == 200, f"Expected 200 for {aid}, got {response.status_code}"
+                
+                data = response.json()
+                required_fields = ["id", "slug", "name", "short", "kind", "recipient", "issuer", 
+                                 "issued_on", "description", "disclaimer", "facts", "tags", "urls", "paths"]
+                for field in required_fields:
+                    assert field in data, f"Should have {field}"
+                
+                assert data["recipient"] == "Ernesto Couso Artiles", "Recipient should be Ernesto Couso Artiles"
+                assert data["issuer"] == "210Codelabs Corporation", "Issuer should be 210Codelabs Corporation"
+                assert isinstance(data["facts"], list), "facts should be a list"
+                assert len(data["facts"]) > 0, "Should have at least one fact"
+                
+                # Privacy check
+                full_json = str(data)
+                assert "1977-09-29" not in full_json, "Should not contain DOB"
+                assert "September 29, 1977" not in full_json, "Should not contain DOB text"
+                assert "8006239593" not in full_json, "Should not contain student ID"
+                
+                # PhD specific check
+                if badge_type == "phd":
+                    description = data.get("description", "")
+                    facts_text = str(data.get("facts", []))
+                    assert "not yet conferred" in description or "not been conferred" in description or \
+                           "not yet conferred" in facts_text or "not been conferred" in facts_text, \
+                           "PhD badge must state degree not conferred"
+                    print(f"✓ PhD badge correctly states degree not conferred")
+                
+                print(f"✓ Public view valid: {data['name'][:50]}...")
+            
+            # Test 404 for unknown aid
+            response = await client.get(f"{self.base_url}/badges/public/bogus-aid-12345")
+            assert response.status_code == 404, "Unknown aid should return 404"
+            print(f"\n✓ Unknown aid correctly returns 404")
+
     async def run_all_tests(self):
         """Run all tests in sequence."""
         print("\n" + "="*60)
-        print("SEO + BOOKING EMAILS + MANAGE BOOKING TEST SUITE")
+        print("SEO + BOOKING EMAILS + MANAGE BOOKING + BADGES TEST SUITE")
         print("="*60)
         
         await self.setup_db()
@@ -524,6 +755,17 @@ class BookingEmailsTester:
         await self.run_test("Reschedule booking", self.test_reschedule_booking)
         await self.run_test("Cancel booking", self.test_cancel_booking)
         await self.run_test("Booking reminders cron (auth + no-double-send)", self.test_booking_reminders_cron)
+        
+        # Open Badges tests
+        print("\n" + "="*60)
+        print("OPEN BADGES 2.0 ENDPOINTS")
+        print("="*60)
+        await self.run_test("Badges issuer endpoint", self.test_badges_issuer)
+        await self.run_test("Badges classes (all 3 badges)", self.test_badges_classes)
+        await self.run_test("Badges assertions (all 3 badges)", self.test_badges_assertions)
+        await self.run_test("Badges images (PNG)", self.test_badges_images)
+        await self.run_test("Badges baked PNG", self.test_badges_baked_png)
+        await self.run_test("Badges public view", self.test_badges_public)
         
         # Print summary
         print("\n" + "="*60)

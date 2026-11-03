@@ -14,6 +14,7 @@ import BlogPostPage from "@/pages/BlogPostPage";
 import ContactPage from "@/pages/ContactPage";
 import BookPage from "@/pages/BookPage";
 import ManageBookingPage from "@/pages/ManageBookingPage";
+import CredentialVerifyPage from "@/pages/CredentialVerifyPage";
 import LegalPage from "@/pages/LegalPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import AdminMessagesPage from "@/pages/AdminMessagesPage";
@@ -38,6 +39,7 @@ import AdminAnalyticsPage from "@/pages/admin/AdminAnalyticsPage";
 import AdminAutomationsPage from "@/pages/admin/AdminAutomationsPage";
 import AdminIntegrationsPage from "@/pages/admin/AdminIntegrationsPage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
+import AdminBadgesPage from "@/pages/admin/AdminBadgesPage";
 import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
 import { captureAttribution } from "@/lib/attribution";
 
@@ -66,6 +68,7 @@ function App() {
             <Route path="contact" element={<ContactPage />} />
             <Route path="book" element={<BookPage />} />
             <Route path="book/manage/:token" element={<ManageBookingPage />} />
+            <Route path="credentials/:id" element={<CredentialVerifyPage />} />
             <Route path="legal/:slug" element={<LegalPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
@@ -89,6 +92,7 @@ function App() {
             <Route path="automations" element={<AdminAutomationsPage />} />
             <Route path="integrations" element={<AdminIntegrationsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="badges" element={<AdminBadgesPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
           </Route>
           {/* Legacy password-protected admin pages (preserved) */}

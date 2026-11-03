@@ -152,3 +152,20 @@ def require_admin(request: Request) -> dict:
     except requests.RequestException:
         raise HTTPException(status_code=503, detail="Could not verify administrator")
     return user
+
+
+def require_superadmin(request: Request) -> dict:
+    """Only the superadmin's verified Google/Clerk email may pass (OpenBadge issuing)."""
+    user = require_user(request)
+    target = (os.environ.get("SUPERADMIN_EMAIL") or "ernesto@210codelabs.com").strip().lower()
+    try:
+        data = _clerk_get_user(user["user_id"])
+    except requests.RequestException:
+        raise HTTPException(status_code=503, detail="Could not verify administrator")
+    ok = any(
+        (e.get("email_address") or "").lower() == target and (e.get("verification") or {}).get("status") == "verified"
+        for e in data.get("email_addresses", [])
+    )
+    if not ok:
+        raise HTTPException(status_code=403, detail="Superadmin only")
+    return {**user, "email": target}

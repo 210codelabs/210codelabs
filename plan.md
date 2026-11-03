@@ -11,11 +11,21 @@
   - **Structured data (JSON-LD)**.
   - **Crawl/indexation** (sitemap.xml, robots.txt, noindex rules for private pages).
   - **Social previews** (Open Graph + Twitter cards).
-- Keep everything in **English**.
+- Add **Open Badges 2.0** (hosted verification) for verified academic credentials:
+  - Public verification pages at `/credentials/:id` (shareable, `noindex`).
+  - Baked PNGs for Credly importing, with embedded hosted assertion URL.
+  - Privacy-safe: **no DOB, no student ID, no PDFs** exposed.
+  - No claims beyond “validated by 210Codelabs” and the exact third-party statements.
+- Add a **superadmin-only OpenBadges admin panel section** inside `/admin`:
+  - Create/edit/revoke/restore/delete badges
+  - Generate shield artwork + preview
+  - Copy badge verification URLs and download baked PNG
 
-**Current status (as of iteration_8 + iteration_9 tests):**
+**Current status (as of iteration_8, iteration_9, iteration_10, iteration_11 tests):**
 - Booking emails + self-serve manage flow: **COMPLETED and verified (100% pass)**.
 - SEO/indexation + social previews: **COMPLETED and verified (100% pass)**.
+- Founder OpenBadges: **COMPLETED and verified (iteration_10, 100% pass)**.
+- OpenBadges admin section: **COMPLETED and verified (iteration_11, 100% pass; 25 checks)**.
 
 ---
 
@@ -153,10 +163,6 @@ Deliverable: fully verified booking confirmation + reschedule/cancel + 24h remin
 
 **Status:** COMPLETED.
 - Verified by testing agent: **iteration_8 (100% pass)**.
-- Key behaviors validated:
-  - Confirmation email is queued and recorded per appointment.
-  - Manage page works for reschedule/cancel.
-  - Reminder cron is auth-protected, sends reminders for meetings 1–24 hours away, and prevents duplicate sends.
 
 ---
 
@@ -200,6 +206,84 @@ Conclude Phase 6:
 
 ---
 
+### Phase 7 — Founder OpenBadges (P0)
+User stories:
+1. As Ernesto, I have shareable Open Badges 2.0 URLs for my validated degrees/transcripts.
+2. As a viewer (e.g., recruiter), I can open a verification page that shows only non-sensitive facts and a clear disclaimer.
+3. As Ernesto, I can upload a baked badge PNG to Credly so it points back to hosted verification.
+
+Implementation details:
+- Open Badges 2.0 hosted verification endpoints:
+  - `/api/badges/issuer`
+  - `/api/badges/classes/{slug}`
+  - `/api/badges/assertions/{aid}`
+  - `/api/badges/assertions/{aid}/baked.png` (contains `openbadges` iTXt with assertion URL)
+  - `/api/badges/images/{slug}.png`
+  - `/api/badges/public/{aid}`
+- Human-readable verification page:
+  - `/credentials/:id` (shareable, `noindex, nofollow`, no canonical)
+  - Shows badge artwork, facts, disclaimer, download link, and assertion JSON link.
+- Badge artwork:
+  - Shield-style PNG generated via Pillow (`backend/badge_art.py`).
+  - Seals are **text initials/marks**, not official third-party logos.
+- Privacy:
+  - No DOB, no student ID, no PDFs exposed.
+- Founder badges issued (recipient `ernesto@210codelabs.com`, hashed in assertions):
+  - USCES evaluation: **Bachelor’s Degree in Computer Engineering** (report `12749-434-EA3AOGT1`).
+  - USCES evaluation: **Master of Science in Innovation and Management** (report `16245-434-BP3AOGT1`).
+  - National University transcript: **Ph.D. Candidate in Technology & Innovation Management** (45 credits, GPA 3.62; degree not conferred explicitly stated).
+
+**Status:** COMPLETED.
+- Verified by testing agent: **iteration_10 (100% pass)**.
+
+Notes for usage:
+- Credly: Upload the baked PNG in Credly’s “Add outside badge” flow and ensure the Credly account email matches the badge recipient email.
+
+---
+
+### Phase 8 — OpenBadges admin section (P0)
+User stories:
+1. As the superadmin (Ernesto), I can create a new badge by typing in verified facts (no document uploads).
+2. As the superadmin, I can generate the shield artwork from the form and see a live preview.
+3. As the superadmin, I can copy the verification URL and download the baked PNG for Credly.
+4. As the superadmin, I can revoke/restore badges (and verifiers can see that state).
+
+Implementation details:
+- Storage:
+  - Mongo collection: `open_badges`.
+  - Founder badges are **seeded** on startup with their **original IDs and salt** to preserve verification links.
+- Superadmin-only authorization:
+  - Clerk verified email must match `SUPERADMIN_EMAIL` (default `ernesto@210codelabs.com`).
+  - Access check endpoint: `GET /api/admin/badges/access`.
+- Superadmin endpoints (Clerk-protected):
+  - `GET /api/admin/badges` (list)
+  - `POST /api/admin/badges` (create)
+  - `GET /api/admin/badges/{aid}` (get)
+  - `PATCH /api/admin/badges/{aid}` (update)
+  - `POST /api/admin/badges/{aid}/revoke` (revoke)
+  - `POST /api/admin/badges/{aid}/restore` (restore)
+  - `DELETE /api/admin/badges/{aid}` (delete)
+  - `POST /api/admin/badges/preview` (renders shield PNG for live preview)
+- Admin UI:
+  - Route: `/admin/badges`.
+  - Nav item (“OpenBadges”) is visible **only when superadmin access succeeds**.
+  - Templates: “USCES degree evaluation”, “University transcript”, “Custom”.
+  - Form: recipient name/email, facts editor, tags, disclaimer, “write description from facts”.
+  - Shield artwork inputs with character counters and live preview.
+  - Issued panel with copy URL + download baked PNG.
+  - Table actions: copy/page/PNG/edit/revoke/restore/delete.
+- Revocation behavior:
+  - Verify page shows revoked status.
+  - Assertion JSON includes `revoked: true` and `revocationReason`.
+
+**Status:** COMPLETED.
+- Verified by testing agent: **iteration_11 (100% pass; 25 checks)**.
+
+Notes:
+- Badge JSON uses `https://210codelabs.com` IDs (`BADGE_BASE_URL`), so newly issued badges verify properly once deployed to production.
+
+---
+
 ## Status (updated)
 - Phase 1 (contact → MongoDB → admin API): DONE.
 - Phase 2 (full site, all pages, admin inbox UI, responsive): DONE.
@@ -207,15 +291,20 @@ Conclude Phase 6:
 - CRM Add-On, AI Concierge, daily blog engine, lead digest, and legacy admin user management: DONE.
 - Phase 5 (booking confirmation + manage + reminders): **DONE + VERIFIED (iteration_8)**.
 - Phase 6 (SEO/indexation improvements): **DONE + VERIFIED (iteration_9)**.
+- Phase 7 (Founder OpenBadges): **DONE + VERIFIED (iteration_10)**.
+- Phase 8 (OpenBadges admin section): **DONE + VERIFIED (iteration_11)**.
 
 ## 3) Next Actions
-With both Phase 5 and Phase 6 complete, the remaining work is optional/future-facing:
-1. (Optional) **Core Web Vitals / performance** improvements (fonts/images, bundle splitting) if desired.
-2. (Optional) Submit/verify in **Google Search Console**:
-   - Add property, verify domain.
-   - Submit sitemap URL: `/api/sitemap.xml`.
-   - Monitor coverage, indexing issues, and rich result enhancements.
-3. (Optional) SEO content strategy iterations (blog topic seeds, internal linking improvements, landing pages).
+With Phases 5–8 complete, remaining work is optional/future-facing:
+1. (Optional) **Core Web Vitals / performance** improvements (fonts/images, bundle splitting).
+2. (Optional) Google Search Console operations:
+   - Verify domain property.
+   - Submit sitemap: `/api/sitemap.xml`.
+   - Monitor indexing coverage and enhancements.
+3. (Optional) OpenBadges operational hardening:
+   - Add an admin audit log for badge issuance/revocation.
+   - Add rate limiting/caching for public badge endpoints.
+   - Add export (CSV/JSON) of issued badges for compliance.
 
 ## 4) Success Criteria
 - Booking flow:
@@ -228,4 +317,10 @@ With both Phase 5 and Phase 6 complete, the remaining work is optional/future-fa
   - Valid JSON-LD for Organization/WebSite and BlogPosting (plus Breadcrumb/FAQ where applicable).
   - Working `/api/sitemap.xml` and `/api/robots.txt` (and hardened `public/robots.txt`) with correct inclusions/exclusions.
   - Correct OG/Twitter tags with sensible images and descriptions.
+- OpenBadges:
+  - Badges follow Open Badges 2.0 hosted verification format (Issuer, BadgeClass, Assertion).
+  - Verification pages are shareable but not indexed (`noindex`).
+  - Baked PNG contains the hosted assertion URL (Credly-compatible import).
+  - No sensitive information is publicly exposed.
+  - Admin issuance is superadmin-only and revocations are reflected on both the verify page and assertion JSON.
 - No regressions to existing public site, CRM admin, blog engine, or legacy admin areas.

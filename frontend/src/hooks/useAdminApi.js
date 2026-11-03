@@ -19,7 +19,11 @@ export function useAdminApi() {
     let data = null;
     try { data = await res.json(); } catch { /* empty */ }
     if (!res.ok) {
-      const err = new Error((data && (data.detail || data.message)) || `Request failed (${res.status})`);
+      const detail = data && (data.detail || data.message);
+      const msg = Array.isArray(detail)
+        ? detail.map((d) => `${(d.loc || []).filter((x) => x !== "body").join(" → ")}: ${d.msg}`).join("; ")
+        : detail;
+      const err = new Error(msg || `Request failed (${res.status})`);
       err.status = res.status;
       throw err;
     }

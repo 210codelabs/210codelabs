@@ -117,9 +117,9 @@ export const LEADER = {
     },
   ],
   social: [
-    { network: "linkedin", label: "Ernesto Couso on LinkedIn", url: "https://www.linkedin.com/in/ernestocouso" },
-    { network: "x", label: "Ernesto Couso on X", url: "https://x.com/ErnestoCouso" },
-    { network: "github", label: "Ernesto Couso on GitHub", url: "https://github.com/ernestocouso" },
+    { network: "linkedin", label: "Ernesto Couso on LinkedIn", url: "https://linkedin.com/in/ernestocouso" },
+    { network: "x", label: "210Codelabs on X", url: "https://x.com/210codelabs" },
+    { network: "facebook", label: "Ernesto Couso on Facebook", url: "https://www.facebook.com/titocouso/" },
   ],
 };
 
