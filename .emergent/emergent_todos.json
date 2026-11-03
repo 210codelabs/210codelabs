@@ -1,26 +1,30 @@
 [
   {
-    "content": "Phase 5: Run end-to-end test on booking confirmation email + manage page (reschedule/cancel) + 24h reminder cron",
+    "content": "Add GitHub (ecouso1977) to Ernesto's profile socials",
     "status": "completed"
   },
   {
-    "content": "Phase 6: SEO on-page basics (titles, meta descriptions, canonicals, H1 hierarchy, alt text, internal links)",
+    "content": "Add to LinkedIn button on verify pages (server-built URL)",
     "status": "completed"
   },
   {
-    "content": "Phase 6: Structured data JSON-LD (Organization/LocalBusiness, WebSite, BlogPosting, BreadcrumbList)",
+    "content": "Official seal logo uploads (superadmin) + render in seals",
     "status": "completed"
   },
   {
-    "content": "Phase 6: Crawl + indexation (sitemap.xml, robots.txt, noindex on private pages)",
+    "content": "Founder credentials card on About/Leadership (featured badges)",
     "status": "completed"
   },
   {
-    "content": "Phase 6: Social previews (OG + Twitter card tags per page)",
+    "content": "Badge email delivery on issue + resend",
     "status": "completed"
   },
   {
-    "content": "Final regression test after SEO changes",
+    "content": "Fix Credly rejection: bundle fonts (prod image 500) + issuedOn Z format",
+    "status": "completed"
+  },
+  {
+    "content": "Test all with testing agent",
     "status": "completed"
   }
 ]

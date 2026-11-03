@@ -13,14 +13,19 @@ from PIL.PngImagePlugin import PngInfo
 
 # ---------------------------------------------------------------- artwork
 S = 1200  # render size; downscaled to 600 for smooth edges
-FONT_DIR = "/usr/share/fonts/truetype/liberation"
+FONT_DIR = Path(__file__).parent / "assets" / "fonts"  # bundled (Liberation Sans, SIL OFL) so production needs no system fonts
+_SYSTEM_FONT_DIR = Path("/usr/share/fonts/truetype/liberation")
 NAVY, NAVY_2, BLUE, BLUE_2 = (10, 29, 68), (19, 53, 127), (20, 80, 216), (14, 58, 168)
 ICE, SKY, SILVER_1, SILVER_2 = (245, 248, 254), (159, 186, 240), (226, 233, 245), (128, 148, 184)
 
 
+@lru_cache(maxsize=256)
 def _font(size: int, bold: bool = True, serif: bool = False) -> ImageFont.FreeTypeFont:
-    fam = "LiberationSerif" if serif else "LiberationSans"
-    return ImageFont.truetype(f"{FONT_DIR}/{fam}-{'Bold' if bold else 'Regular'}.ttf", size)
+    name = f"LiberationSans-{'Bold' if bold else 'Regular'}.ttf"
+    for d in (FONT_DIR, _SYSTEM_FONT_DIR):
+        if (d / name).exists():
+            return ImageFont.truetype(str(d / name), size)
+    return ImageFont.load_default(size=size)  # last resort: never fail the badge image
 
 
 def _shield_points(inset: float = 0) -> list:
@@ -97,13 +102,40 @@ def _arc_text(canvas, text, center, radius, color, bottom=False, max_deg=150, si
         a = a - step if bottom else a + step
 
 
-def _seal(canvas, center, r, abbr, top_text, bottom_text):
+# Uploaded institution logos (immutable by id): id -> PNG bytes. Filled by the caller before rendering.
+LOGOS: dict = {}
+
+
+def _logo_seal(canvas, center, r, logo_bytes: bytes):
+    """Official logo inside a white disc with the metallic rim (logo is contain-fit + circle-clipped)."""
+    cx, cy = center
+    d = ImageDraw.Draw(canvas)
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(255, 255, 255), outline=SILVER_2, width=6)
+    inner = r - 10
+    logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
+    box = int(inner * 2 * 0.86)  # keep corners of square logos inside the circle
+    logo.thumbnail((box, box), Image.LANCZOS)
+    disc = Image.new("RGBA", (inner * 2, inner * 2), (255, 255, 255, 0))
+    disc.alpha_composite(logo, ((inner * 2 - logo.width) // 2, (inner * 2 - logo.height) // 2))
+    mask = Image.new("L", disc.size, 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, inner * 2 - 1, inner * 2 - 1), fill=255)
+    clipped = Image.new("RGBA", disc.size, (0, 0, 0, 0))
+    clipped.paste(disc, (0, 0), mask)
+    canvas.alpha_composite(clipped, (int(cx - inner), int(cy - inner)))
+    d = ImageDraw.Draw(canvas)
+    d.ellipse((cx - r + 4, cy - r + 4, cx + r - 4, cy + r - 4), outline=(214, 224, 240), width=2)
+
+
+def _seal(canvas, center, r, abbr, top_text, bottom_text, logo_id=None):
     d = ImageDraw.Draw(canvas)
     cx, cy = center
     # soft shadow
     sh = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     ImageDraw.Draw(sh).ellipse((cx - r, cy - r + 10, cx + r, cy + r + 10), fill=(0, 0, 0, 110))
     canvas.alpha_composite(sh.filter(ImageFilter.GaussianBlur(10)))
+    if logo_id and LOGOS.get(logo_id):
+        _logo_seal(canvas, center, r, LOGOS[logo_id])
+        return
     d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=ICE, outline=SILVER_2, width=6)
     d.ellipse((cx - r + 14, cy - r + 14, cx + r - 14, cy + r - 14), outline=BLUE, width=5)
     inner = r - 56
@@ -120,8 +152,11 @@ def _seal(canvas, center, r, abbr, top_text, bottom_text):
 
 def render_art(art: dict) -> bytes:
     """Render a 600x600 PNG. `art` keys: kicker, lines[], sub, seal_abbr, seal_top, seal_bottom,
-    seal2 (optional dict: abbr, top, bottom), ribbon, ribbon_sub."""
-    return _render_cached(json.dumps(art, sort_keys=True))
+    seal_logo_id, seal2 (optional dict: abbr, top, bottom, logo_id), ribbon, ribbon_sub.
+    Logo ids must already be loaded into LOGOS (ids are immutable, so they are safe cache keys)."""
+    ids = [art.get("seal_logo_id"), (art.get("seal2") or {}).get("logo_id")]
+    key = {**art, "_logos_loaded": [i for i in ids if i and i in LOGOS]}
+    return _render_cached(json.dumps(key, sort_keys=True))
 
 
 @lru_cache(maxsize=64)
@@ -149,11 +184,11 @@ def _render_cached(art_json: str) -> bytes:
 
     # seals
     s2 = art.get("seal2") or None
-    if s2 and s2.get("abbr"):
-        _seal(canvas, (445, 430), 128, art.get("seal_abbr", ""), art.get("seal_top", ""), art.get("seal_bottom", ""))
-        _seal(canvas, (755, 430), 128, s2["abbr"], s2.get("top", ""), s2.get("bottom", ""))
+    if s2 and (s2.get("abbr") or s2.get("logo_id")):
+        _seal(canvas, (445, 430), 128, art.get("seal_abbr", ""), art.get("seal_top", ""), art.get("seal_bottom", ""), art.get("seal_logo_id"))
+        _seal(canvas, (755, 430), 128, s2["abbr"], s2.get("top", ""), s2.get("bottom", ""), s2.get("logo_id"))
     else:
-        _seal(canvas, (S / 2, 432), 138, art.get("seal_abbr", ""), art.get("seal_top", ""), art.get("seal_bottom", ""))
+        _seal(canvas, (S / 2, 432), 138, art.get("seal_abbr", ""), art.get("seal_top", ""), art.get("seal_bottom", ""), art.get("seal_logo_id"))
 
     # degree text
     _spaced(d, (S / 2, 612), art.get("kicker", ""), _font(34), SKY, spacing=7)

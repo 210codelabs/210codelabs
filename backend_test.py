@@ -696,7 +696,7 @@ class BookingEmailsTester:
                 assert response.status_code == 200, f"Expected 200 for {aid}, got {response.status_code}"
                 
                 data = response.json()
-                required_fields = ["id", "slug", "name", "short", "kind", "recipient", "issuer", 
+                required_fields = ["id", "slug", "name", "short", "recipient", "issuer", 
                                  "issued_on", "description", "disclaimer", "facts", "tags", "urls", "paths"]
                 for field in required_fields:
                     assert field in data, f"Should have {field}"
@@ -727,6 +727,121 @@ class BookingEmailsTester:
             response = await client.get(f"{self.base_url}/badges/public/bogus-aid-12345")
             assert response.status_code == 404, "Unknown aid should return 404"
             print(f"\n✓ Unknown aid correctly returns 404")
+
+    async def test_badges_featured(self):
+        """Test GET /api/badges/featured returns 3 seeded founder badges with linkedin_add_url."""
+        import httpx
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(f"{self.base_url}/badges/featured")
+            
+            print(f"Status: {response.status_code}")
+            data = response.json()
+            
+            assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+            assert "items" in data, "Response should include items array"
+            assert isinstance(data["items"], list), "items should be a list"
+            assert len(data["items"]) == 3, f"Should return exactly 3 featured badges, got {len(data['items'])}"
+            
+            print(f"✓ Returned {len(data['items'])} featured badges")
+            
+            # Verify each badge has linkedin_add_url
+            for badge in data["items"]:
+                assert "linkedin_add_url" in badge, "Each badge should have linkedin_add_url"
+                assert badge["linkedin_add_url"].startswith("https://www.linkedin.com/profile/add?"), \
+                    f"linkedin_add_url should start with LinkedIn URL, got: {badge['linkedin_add_url']}"
+                
+                # Verify LinkedIn URL structure
+                url = badge["linkedin_add_url"]
+                assert "startTask=CERTIFICATION_NAME" in url, "Should have startTask parameter"
+                assert "name=" in url, "Should have name parameter"
+                # Check for organizationName (with any URL encoding) or organizationId
+                has_org = ("organizationName=" in url and "210Codelabs" in url) or "organizationId=" in url
+                assert has_org, f"Should have organizationName or organizationId, got: {url}"
+                assert "issueYear=" in url, "Should have issueYear parameter"
+                assert "issueMonth=" in url, "Should have issueMonth parameter (1-12)"
+                assert "certUrl=" in url, "Should have certUrl parameter"
+                assert "certId=" in url, "Should have certId parameter"
+                
+                print(f"✓ Badge {badge['slug']} has valid linkedin_add_url")
+            
+            # Verify all 3 seeded badges are present
+            slugs = [b["slug"] for b in data["items"]]
+            expected_slugs = [
+                "bachelor-computer-engineering-usces",
+                "master-innovation-management-usces",
+                "phd-candidate-technology-innovation-management"
+            ]
+            for expected in expected_slugs:
+                assert expected in slugs, f"Missing expected badge: {expected}"
+            
+            print(f"✓ All 3 seeded founder badges present")
+
+    async def test_badges_issuedOn_format(self):
+        """Test that assertion issuedOn ends with 'Z' (ISO 8601 UTC format)."""
+        import httpx
+        
+        aids = [
+            "26ce7f3d-4dca-54b2-8dbf-9eea1af888aa",
+            "6b0bc72a-ffec-5a0c-9d8d-1d8c310a35a7",
+            "092afa88-01cc-53ff-8633-348217e4e816"
+        ]
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for aid in aids:
+                response = await client.get(f"{self.base_url}/badges/assertions/{aid}")
+                
+                print(f"\nTesting issuedOn format: {aid}")
+                print(f"Status: {response.status_code}")
+                
+                assert response.status_code == 200, f"Expected 200 for {aid}, got {response.status_code}"
+                
+                data = response.json()
+                assert "issuedOn" in data, "Assertion should have issuedOn field"
+                
+                issued_on = data["issuedOn"]
+                print(f"issuedOn: {issued_on}")
+                
+                # Verify format ends with 'Z' (e.g., 2026-11-02T00:00:00Z)
+                assert issued_on.endswith("Z"), f"issuedOn should end with 'Z', got: {issued_on}"
+                
+                # Verify it's a valid ISO 8601 format
+                import re
+                iso_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$'
+                assert re.match(iso_pattern, issued_on), f"issuedOn should match ISO 8601 format YYYY-MM-DDTHH:MM:SSZ, got: {issued_on}"
+                
+                print(f"✓ issuedOn format valid: {issued_on}")
+
+    async def test_badges_identity_hash(self):
+        """Test that all 3 seeded badges have the same identity hash (same recipient email)."""
+        import httpx
+        
+        aids = [
+            "26ce7f3d-4dca-54b2-8dbf-9eea1af888aa",
+            "6b0bc72a-ffec-5a0c-9d8d-1d8c310a35a7",
+            "092afa88-01cc-53ff-8633-348217e4e816"
+        ]
+        
+        expected_identity = "sha256$b29ebd89336de7d3f140683aa1f4da0cfa4160c059f4a5155a51c0bd0e9ab566"
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for aid in aids:
+                response = await client.get(f"{self.base_url}/badges/assertions/{aid}")
+                
+                print(f"\nTesting identity hash: {aid}")
+                
+                assert response.status_code == 200, f"Expected 200 for {aid}, got {response.status_code}"
+                
+                data = response.json()
+                assert "recipient" in data, "Assertion should have recipient"
+                assert "identity" in data["recipient"], "Recipient should have identity"
+                
+                identity = data["recipient"]["identity"]
+                print(f"identity: {identity}")
+                
+                assert identity == expected_identity, f"Identity should be {expected_identity}, got: {identity}"
+                
+                print(f"✓ Identity hash matches expected value")
 
     async def run_all_tests(self):
         """Run all tests in sequence."""
@@ -766,6 +881,9 @@ class BookingEmailsTester:
         await self.run_test("Badges images (PNG)", self.test_badges_images)
         await self.run_test("Badges baked PNG", self.test_badges_baked_png)
         await self.run_test("Badges public view", self.test_badges_public)
+        await self.run_test("Badges featured endpoint (3 badges with LinkedIn URLs)", self.test_badges_featured)
+        await self.run_test("Badges issuedOn format (ends with Z)", self.test_badges_issuedOn_format)
+        await self.run_test("Badges identity hash consistency", self.test_badges_identity_hash)
         
         # Print summary
         print("\n" + "="*60)

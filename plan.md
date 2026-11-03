@@ -20,12 +20,18 @@
   - Create/edit/revoke/restore/delete badges
   - Generate shield artwork + preview
   - Copy badge verification URLs and download baked PNG
+- Improve badge portability and sharing:
+  - “**Add to LinkedIn**” one-click button on each credential verification page.
+  - Founder “Verified academic credentials” card on About/Leadership page.
+  - Optional **official seal logo uploads** for badges (superadmin-only, with safe constraints).
+  - Automated **badge email delivery** to recipients on issuance (with resend).
 
-**Current status (as of iteration_8, iteration_9, iteration_10, iteration_11 tests):**
-- Booking emails + self-serve manage flow: **COMPLETED and verified (100% pass)**.
-- SEO/indexation + social previews: **COMPLETED and verified (100% pass)**.
+**Current status (as of iteration_8, iteration_9, iteration_10, iteration_11, iteration_12 tests):**
+- Booking emails + self-serve manage flow: **COMPLETED and verified (iteration_8, 100% pass)**.
+- SEO/indexation + social previews: **COMPLETED and verified (iteration_9, 100% pass)**.
 - Founder OpenBadges: **COMPLETED and verified (iteration_10, 100% pass)**.
 - OpenBadges admin section: **COMPLETED and verified (iteration_11, 100% pass; 25 checks)**.
+- OpenBadges sharing + logo uploads + delivery hardening: **COMPLETED and verified (iteration_12, 100% pass; 26 checks)**.
 
 ---
 
@@ -64,30 +70,19 @@ User stories:
 4. As a visitor, I can view the four work cards and open a detail page that clearly says “Case study details coming soon”.
 5. As a visitor, I can submit the contact form and see an accessible confirmation state.
 
-Steps (build in as few large edits as feasible):
+Steps:
 - Frontend foundations:
   - CRA routing: `/`, `/about`, `/capabilities`, `/work`, `/work/:slug`, `/investors`, `/blog`, `/contact`, `/privacy`, `/terms`, `/cookies`, `/accessibility`, `/admin/messages`.
   - Global layout: sticky header (72px), footer, smooth-scroll utilities, prefers-reduced-motion handling.
-- Homepage fidelity build (match reference):
-  - Header: logo PNG (260px), nav items, active underline, gradient “Let’s Build” CTA.
-  - Hero: `hero-futuristic-city.png` cover + left white veil; eyebrow; H1 with blue 2nd line; subtitle/paragraph; CTAs.
-  - Right vertical text stack: VISION / ENGINEERING / IMPACT / TOGETHER.
-  - Capability cards row overlapping hero bottom (6 desktop / 3x2 tablet / 2-1 mobile).
-  - Our Purpose band (navy) with `purpose-earth-band.png` + 3 numbered pillars.
-  - Selected Work section: side header + 4 case cards (use `case-*.png`) linking to `/work/:slug`.
-  - Technology Ecosystem band: “Stronger Together”; show **text wordmarks** OpenAI / Google Cloud / Microsoft with captions (no badges/partner wording) + right-side phrase.
-  - Final CTA band: `cta-mountain-band.png` + button to contact.
+- Homepage fidelity build:
+  - Header, hero, capability cards, purpose band, selected work, ecosystem band, CTA band.
 - Contact:
   - Homepage contact section + `/contact` page with public email `info@210codelabs.com`.
-  - Form posts to `POST /api/contact`; clear loading/success/error UI; accessible validation.
+  - Form posts to `POST /api/contact`.
 - Admin inbox UI:
-  - `/admin/messages`: simple password prompt → store token in memory → fetch list → detail viewer.
-- Assets & performance:
-  - Add images to frontend `public/` or imported assets; generate **webp** variants and use `srcSet`/`<picture>`.
-  - Add favicon derived from logo, OG meta, title/description.
-
-Conclude Phase 2:
-- Run the testing agent for one full E2E pass: navigation, responsive menu, work pages, contact submit stored, admin inbox reads.
+  - `/admin/messages` with password prompt.
+- Assets:
+  - Optimized images and favicon.
 
 **Status:** DONE.
 
@@ -95,71 +90,24 @@ Conclude Phase 2:
 
 ### Phase 3 — Hardening, polish, and content placeholders (2nd test)
 User stories:
-1. As a visitor, I can tab through the entire site with visible focus and no traps.
-2. As a visitor with reduced-motion enabled, animations are minimized.
-3. As a visitor, I can use keyboard to operate the mobile menu and all CTAs.
-4. As an admin, I can search/filter messages by email or date.
-5. As a visitor, I can read secondary pages that clearly indicate “content coming soon/pending legal review” without misleading claims.
-
-Steps:
-- Visual polish & fidelity adjustments (spacing, typography scale, shadows, card radii) against the reference screenshot.
-- Add active-section highlighting on homepage (IntersectionObserver).
-- Admin inbox improvements: basic search/filter, pagination, empty/loading states.
-- Security + reliability: stricter validation, minimal anti-spam (honeypot), server-side logging.
-- Ensure no tracking/cookie banner; keep policies as placeholders “pending legal review”.
-
-Conclude Phase 3:
-- Testing agent: regression on core flows + accessibility checks (keyboard, ARIA labels, contrast sanity).
+1. Keyboard accessibility and reduced motion supported.
+2. Admin inbox usability improvements.
 
 **Status:** DONE.
 
 ---
 
 ### Phase 4 — Optional enhancements (only after approval)
-User stories:
-1. As an admin, I can export messages as CSV.
-2. As an admin, I can mark messages as read/archived.
-3. As a visitor, I can see improved Work listing and filters (still honest placeholders).
-4. As a visitor, I can view a consistent design system across pages.
-5. As a maintainer, I can configure SEO defaults per route.
-
-Steps:
-- Add message status fields, CSV export endpoint, simple UI.
-- Refactor into reusable components (Section, Card, CTA, Band, Container) without changing visuals.
-
-**Status:** OPTIONAL / NOT STARTED (no request pending).
+**Status:** OPTIONAL / NOT STARTED.
 
 ---
 
 ### Phase 5 — Booking emails + self-serve manage flow (P0)
 User stories:
-1. As a visitor, after I book, I immediately receive a **confirmation email** with meeting details and a manage link.
-2. As a visitor, I can open the manage link to **view**, **reschedule**, or **cancel** my meeting without logging in.
-3. As a visitor, I receive a **24-hour reminder email** before the meeting.
-4. As the business, we do not double-send reminders, and email failures do not break booking creation.
-
-Implementation + verification steps:
-- Backend wiring validation:
-  - Booking creation triggers confirmation email in background (`send_confirmation`).
-  - Every appointment has an unguessable `manage_token`.
-  - Public manage endpoints (token-keyed):
-    - `GET /api/crm/booking/manage/{token}`
-    - `POST /api/crm/booking/manage/{token}/reschedule`
-    - `POST /api/crm/booking/manage/{token}/cancel`
-  - Reminder cron endpoint:
-    - `POST /api/cron/booking-reminders` (Bearer `WEBHOOK_CRON_SECRET`) calls reminder logic.
-    - Reminder logic claims appointments first to prevent double-send; sets `reminder_sent_at`.
-- Frontend wiring validation:
-  - Route exists and loads: `/book/manage/:token`.
-  - `ManageBookingPage.jsx` supports view/reschedule/cancel and is `noindex`.
-- End-to-end testing (both):
-  1. Create booking from public booking UI.
-  2. Confirm appointment includes `manage_token` and confirmation email send record.
-  3. Open manage link and reschedule; verify new time + rescheduled email queued.
-  4. Cancel booking; verify status update and UI.
-  5. Trigger reminder cron; verify single reminder send per appointment.
-
-Deliverable: fully verified booking confirmation + reschedule/cancel + 24h reminders.
+1. Booking confirmation email + manage link.
+2. Visitor can reschedule/cancel.
+3. 24-hour reminder cron.
+4. No double-sends and email errors never block booking.
 
 **Status:** COMPLETED.
 - Verified by testing agent: **iteration_8 (100% pass)**.
@@ -167,39 +115,7 @@ Deliverable: fully verified booking confirmation + reschedule/cancel + 24h remin
 ---
 
 ### Phase 6 — Google SEO + indexation pass (P1)
-Scope explicitly included (per user): **On-page basics**, **Structured data (JSON-LD)**, **Crawl/indexation**, **Social previews**.
-(Core Web Vitals performance work intentionally skipped.)
-
-User stories:
-1. As Google, I can crawl and index public pages and blog posts effectively.
-2. As a user, search results show correct titles/descriptions and rich enhancements where applicable.
-3. As social platforms, link previews render correct OG/Twitter title/description/image.
-
-Implementation steps:
-- On-page basics:
-  - Ensure each public route has unique `<title>` and `<meta name="description">`.
-  - Add/verify canonical URLs for indexable public pages.
-  - Ensure private/tokenized routes apply `noindex, nofollow` and do **not** emit canonical.
-- Structured data (JSON-LD):
-  - Keep site-wide `Organization` JSON-LD.
-  - Add `WebSite` JSON-LD on homepage.
-  - Blog articles emit JSON-LD `@graph` including `BlogPosting`, `BreadcrumbList`, and `FAQPage` when FAQ exists.
-- Crawl + indexation:
-  - Sitemap: `/api/sitemap.xml` includes public marketing pages, `/book`, static work case studies, legal pages, and all published blog posts.
-  - Robots:
-    - Hardened `public/robots.txt` with disallows + sitemap.
-    - Added dynamic `/api/robots.txt` with the same directives and environment-aware sitemap URL.
-  - Private areas excluded from crawling: `/admin*`, `/sign-in`, `/sign-up`, `/book/manage/*`, `/api/*`.
-- Social previews:
-  - `useSeo` emits Open Graph and Twitter cards.
-  - Homepage uses a real hero image for OG/Twitter preview.
-  - Blog articles use cover image for OG/Twitter preview and set `og:type=article`.
-
-Conclude Phase 6:
-- Test pass validates:
-  - Meta tags per route (title/description/robots/canonical/OG/Twitter).
-  - JSON-LD presence and structure.
-  - Sitemap and robots endpoints.
+Scope (user-selected): On-page basics, JSON-LD, crawl/indexation, social previews.
 
 **Status:** COMPLETED.
 - Verified by testing agent: **iteration_9 (100% pass)**.
@@ -208,9 +124,9 @@ Conclude Phase 6:
 
 ### Phase 7 — Founder OpenBadges (P0)
 User stories:
-1. As Ernesto, I have shareable Open Badges 2.0 URLs for my validated degrees/transcripts.
-2. As a viewer (e.g., recruiter), I can open a verification page that shows only non-sensitive facts and a clear disclaimer.
-3. As Ernesto, I can upload a baked badge PNG to Credly so it points back to hosted verification.
+1. Shareable Open Badges 2.0 URLs.
+2. Privacy-safe verification pages.
+3. Baked PNGs for Credly import.
 
 Implementation details:
 - Open Badges 2.0 hosted verification endpoints:
@@ -220,107 +136,142 @@ Implementation details:
   - `/api/badges/assertions/{aid}/baked.png` (contains `openbadges` iTXt with assertion URL)
   - `/api/badges/images/{slug}.png`
   - `/api/badges/public/{aid}`
-- Human-readable verification page:
-  - `/credentials/:id` (shareable, `noindex, nofollow`, no canonical)
-  - Shows badge artwork, facts, disclaimer, download link, and assertion JSON link.
-- Badge artwork:
-  - Shield-style PNG generated via Pillow (`backend/badge_art.py`).
-  - Seals are **text initials/marks**, not official third-party logos.
-- Privacy:
-  - No DOB, no student ID, no PDFs exposed.
-- Founder badges issued (recipient `ernesto@210codelabs.com`, hashed in assertions):
-  - USCES evaluation: **Bachelor’s Degree in Computer Engineering** (report `12749-434-EA3AOGT1`).
-  - USCES evaluation: **Master of Science in Innovation and Management** (report `16245-434-BP3AOGT1`).
-  - National University transcript: **Ph.D. Candidate in Technology & Innovation Management** (45 credits, GPA 3.62; degree not conferred explicitly stated).
+- Human verification page:
+  - `/credentials/:id` (`noindex, nofollow`, no canonical).
+- Privacy constraints:
+  - No DOB, no student ID, no PDFs.
 
 **Status:** COMPLETED.
 - Verified by testing agent: **iteration_10 (100% pass)**.
-
-Notes for usage:
-- Credly: Upload the baked PNG in Credly’s “Add outside badge” flow and ensure the Credly account email matches the badge recipient email.
 
 ---
 
 ### Phase 8 — OpenBadges admin section (P0)
 User stories:
-1. As the superadmin (Ernesto), I can create a new badge by typing in verified facts (no document uploads).
-2. As the superadmin, I can generate the shield artwork from the form and see a live preview.
-3. As the superadmin, I can copy the verification URL and download the baked PNG for Credly.
-4. As the superadmin, I can revoke/restore badges (and verifiers can see that state).
+1. Superadmin can issue/manage badges.
+2. Generate shield artwork via form.
+3. Copy URL and download baked PNG.
+4. Revoke/restore reflected publicly.
 
 Implementation details:
 - Storage:
-  - Mongo collection: `open_badges`.
-  - Founder badges are **seeded** on startup with their **original IDs and salt** to preserve verification links.
+  - Mongo: `open_badges` (seeded founder badges preserve original IDs and salts).
 - Superadmin-only authorization:
   - Clerk verified email must match `SUPERADMIN_EMAIL` (default `ernesto@210codelabs.com`).
-  - Access check endpoint: `GET /api/admin/badges/access`.
-- Superadmin endpoints (Clerk-protected):
-  - `GET /api/admin/badges` (list)
-  - `POST /api/admin/badges` (create)
-  - `GET /api/admin/badges/{aid}` (get)
-  - `PATCH /api/admin/badges/{aid}` (update)
-  - `POST /api/admin/badges/{aid}/revoke` (revoke)
-  - `POST /api/admin/badges/{aid}/restore` (restore)
-  - `DELETE /api/admin/badges/{aid}` (delete)
-  - `POST /api/admin/badges/preview` (renders shield PNG for live preview)
+- Endpoints (Clerk-protected):
+  - `GET /api/admin/badges/access`
+  - `GET /api/admin/badges`
+  - `POST /api/admin/badges`
+  - `GET /api/admin/badges/{aid}`
+  - `PATCH /api/admin/badges/{aid}`
+  - `POST /api/admin/badges/{aid}/revoke`
+  - `POST /api/admin/badges/{aid}/restore`
+  - `DELETE /api/admin/badges/{aid}`
+  - `POST /api/admin/badges/preview`
 - Admin UI:
   - Route: `/admin/badges`.
-  - Nav item (“OpenBadges”) is visible **only when superadmin access succeeds**.
-  - Templates: “USCES degree evaluation”, “University transcript”, “Custom”.
-  - Form: recipient name/email, facts editor, tags, disclaimer, “write description from facts”.
-  - Shield artwork inputs with character counters and live preview.
-  - Issued panel with copy URL + download baked PNG.
-  - Table actions: copy/page/PNG/edit/revoke/restore/delete.
-- Revocation behavior:
-  - Verify page shows revoked status.
-  - Assertion JSON includes `revoked: true` and `revocationReason`.
+  - Nav item is only visible if `/api/admin/badges/access` succeeds.
 
 **Status:** COMPLETED.
 - Verified by testing agent: **iteration_11 (100% pass; 25 checks)**.
 
-Notes:
-- Badge JSON uses `https://210codelabs.com` IDs (`BADGE_BASE_URL`), so newly issued badges verify properly once deployed to production.
+---
+
+### Phase 9 — OpenBadges sharing, seal logos, featured credentials, and email delivery (P0)
+This phase implements requested “polish + distribution” features.
+
+#### 9.1 Ernesto profile update
+- Added GitHub `https://github.com/ecouso1977` under Ernesto’s About/Leadership social links (`LEADER.social`).
+- Updated founder JSON-LD `sameAs` to match current profiles.
+
+#### 9.2 “Add to LinkedIn” button on verify pages
+- Added per-badge server-built `linkedin_add_url` to the public badge payload.
+- Verify page renders a one-click “Add to LinkedIn” button.
+- URL format:
+  - `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=...&organizationName=210Codelabs+Corporation&issueYear=...&issueMonth=...&certUrl=...&certId=...`
+  - If `LINKEDIN_ORG_ID` env is set, uses `organizationId` instead of `organizationName`.
+
+#### 9.3 Official seal uploads (superadmin)
+- Added `badge_logos` collection + endpoints:
+  - `GET /api/admin/badges/logos`
+  - `POST /api/admin/badges/logos` (PNG/JPG/WebP ≤ 3MB; normalized to PNG ≤ 640px)
+  - `DELETE /api/admin/badges/logos/{id}` (blocked with 409 if in use)
+  - Public fetch: `GET /api/badges/logos/{id}.png`
+- Renderer enhancement:
+  - Seal can now optionally use a logo (`seal_logo_id` and `seal2.logo_id`).
+  - Logos are circle-clipped into the seal disc with the same rim.
+
+#### 9.4 Founder credentials card on About/Leadership
+- Added `featured` flag to badges.
+- Public endpoint: `GET /api/badges/featured`.
+- Leadership/About page shows “Verified academic credentials” card with featured badges.
+
+#### 9.5 Badge email delivery + resend
+- Issuance now supports automated email delivery:
+  - Create payload includes `send_email` (default true in admin UI).
+  - Sent in background task so issuance is never blocked.
+- Resend endpoint:
+  - `POST /api/admin/badges/{aid}/email`
+- Badge document records `last_email` status.
+
+#### 9.6 Credly rejection fix (compliance + production rendering)
+Issue observed: Credly import error (“only support … compliant with Open Badge standards”).
+Root cause found:
+- Production badge image endpoints returned HTTP 500 because the renderer relied on system fonts that were not present in the production container.
+Fix:
+- Bundled Liberation Sans fonts under `backend/assets/fonts/*` with fallback logic.
+- Normalized Assertion `issuedOn` to strict UTC `Z` format.
+
+**Status:** COMPLETED.
+- Verified by testing agent: **iteration_12 (100% pass; 26 checks)**.
+
+Operational note:
+- **Republish the site** (production is on an older build).
+- **Re-download the baked PNG** from the new deployment and re-upload to Credly.
 
 ---
 
 ## Status (updated)
-- Phase 1 (contact → MongoDB → admin API): DONE.
-- Phase 2 (full site, all pages, admin inbox UI, responsive): DONE.
-- Phase 3 (hardening/polish/accessibility improvements): DONE.
-- CRM Add-On, AI Concierge, daily blog engine, lead digest, and legacy admin user management: DONE.
-- Phase 5 (booking confirmation + manage + reminders): **DONE + VERIFIED (iteration_8)**.
-- Phase 6 (SEO/indexation improvements): **DONE + VERIFIED (iteration_9)**.
+- Phase 1: DONE.
+- Phase 2: DONE.
+- Phase 3: DONE.
+- Phase 4: OPTIONAL / NOT STARTED.
+- Phase 5 (Booking emails/reminders/manage): **DONE + VERIFIED (iteration_8)**.
+- Phase 6 (SEO/indexation): **DONE + VERIFIED (iteration_9)**.
 - Phase 7 (Founder OpenBadges): **DONE + VERIFIED (iteration_10)**.
 - Phase 8 (OpenBadges admin section): **DONE + VERIFIED (iteration_11)**.
+- Phase 9 (Sharing + LinkedIn + logos + featured + email + Credly fix): **DONE + VERIFIED (iteration_12)**.
+
+---
 
 ## 3) Next Actions
-With Phases 5–8 complete, remaining work is optional/future-facing:
-1. (Optional) **Core Web Vitals / performance** improvements (fonts/images, bundle splitting).
-2. (Optional) Google Search Console operations:
-   - Verify domain property.
-   - Submit sitemap: `/api/sitemap.xml`.
-   - Monitor indexing coverage and enhancements.
-3. (Optional) OpenBadges operational hardening:
-   - Add an admin audit log for badge issuance/revocation.
-   - Add rate limiting/caching for public badge endpoints.
-   - Add export (CSV/JSON) of issued badges for compliance.
+1. **Deploy/publish** this build to production (`210codelabs.com`).
+2. In Credly:
+   - Download a fresh badge PNG from `/credentials/:id` → “Download badge (PNG)”
+   - Import/upload it to Credly (Badge Wallet → add outside badge)
+   - Ensure the Credly email matches the badge recipient email exactly.
+3. (Optional) Set `LINKEDIN_ORG_ID` in backend env if you want LinkedIn to link to the official 210Codelabs company entity.
+4. (Optional) OpenBadges operational hardening:
+   - Add admin audit log for issuance/revocation/email actions.
+   - Add caching headers for image endpoints.
+
+---
 
 ## 4) Success Criteria
 - Booking flow:
-  - Booking triggers a confirmation email with correct meeting details and working `/book/manage/:token` link.
-  - Visitor can reschedule/cancel successfully; reschedule sends updated email.
-  - Reminders send once per appointment ~24 hours before, without duplicates.
+  - Confirmation + reschedule/cancel + 24h reminders all work and are tested.
 - SEO/indexation:
-  - Unique titles/descriptions, correct robots directives.
-  - Canonicals present for indexable pages and absent for `noindex` pages.
-  - Valid JSON-LD for Organization/WebSite and BlogPosting (plus Breadcrumb/FAQ where applicable).
-  - Working `/api/sitemap.xml` and `/api/robots.txt` (and hardened `public/robots.txt`) with correct inclusions/exclusions.
-  - Correct OG/Twitter tags with sensible images and descriptions.
+  - Unique titles/descriptions, correct robots directives, canonical URLs.
+  - JSON-LD on key pages and blog posts.
+  - Sitemap + robots correct.
 - OpenBadges:
-  - Badges follow Open Badges 2.0 hosted verification format (Issuer, BadgeClass, Assertion).
+  - Issuer/BadgeClass/Assertion endpoints validate and are crawlable.
   - Verification pages are shareable but not indexed (`noindex`).
-  - Baked PNG contains the hosted assertion URL (Credly-compatible import).
-  - No sensitive information is publicly exposed.
-  - Admin issuance is superadmin-only and revocations are reflected on both the verify page and assertion JSON.
+  - Baked PNG contains hosted assertion URL.
+  - Badge images and baked PNGs render in production reliably (no system font dependency).
+  - Superadmin-only badge issuance with revoke/restore.
+  - Optional official seal logo upload with in-use protection.
+  - Founder credentials visible on About page via featured badges.
+  - Recipients can add to LinkedIn via one-click link.
+  - Issuance can email recipients and supports resend.
 - No regressions to existing public site, CRM admin, blog engine, or legacy admin areas.

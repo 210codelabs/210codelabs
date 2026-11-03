@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Ban, CheckCircle2, Copy, Download, FileJson, Info, ShieldCheck } from "lucide-react";
+import { Ban, CheckCircle2, Copy, Download, FileJson, Info, Linkedin, ShieldCheck } from "lucide-react";
 import { useSeo } from "@/hooks/useSeo";
 import { API_BASE } from "@/config/site";
 import { PageHero } from "@/components/site/PageHero";
@@ -56,6 +56,11 @@ export default function CredentialVerifyPage() {
             <div className="cred-verify__actions">
               <a className="btn btn-primary btn-pill btn-sm" href={`${API_BASE}${b.paths.baked}`} download data-testid="credential-download-button"><Download aria-hidden="true" /> Download badge (PNG)</a>
               <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={copy} data-testid="credential-copy-link-button">{copied === "ok" ? <CheckCircle2 aria-hidden="true" /> : <Copy aria-hidden="true" />} {copied === "ok" ? "Link copied" : "Copy badge link"}</button>
+              {b.status !== "revoked" && b.linkedin_add_url && (
+                <a className="btn btn-linkedin btn-pill btn-sm" href={b.linkedin_add_url} target="_blank" rel="noopener noreferrer" data-testid="credential-linkedin-button">
+                  <Linkedin aria-hidden="true" /> Add to LinkedIn<span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              )}
               <a className="text-link cred-verify__json" href={`${API_BASE}${b.paths.assertion}`} target="_blank" rel="noopener noreferrer" data-testid="credential-json-link"><FileJson aria-hidden="true" /> Open Badge JSON</a>
             </div>
             <p className="cred-verify__url" aria-live="polite" data-testid="credential-page-url">{copied === "fail" ? "Copy this link: " : "Badge link: "}<span>{pageUrl}</span></p>
@@ -81,7 +86,7 @@ export default function CredentialVerifyPage() {
               <ol>
                 <li><CheckCircle2 aria-hidden="true" /> Download the badge PNG above. It has the verification link built in.</li>
                 <li><CheckCircle2 aria-hidden="true" /> In Credly, open your Badge Wallet and choose to upload a badge from another provider.</li>
-                <li><CheckCircle2 aria-hidden="true" /> Make sure <strong>ernesto@210codelabs.com</strong> is a confirmed email on your Credly account.</li>
+                <li><CheckCircle2 aria-hidden="true" /> Make sure the email on your Credly account is the one this badge was issued to, and that it's confirmed.</li>
               </ol>
             </div>
           </div>

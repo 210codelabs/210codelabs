@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Award, Ban, Check, Copy, Download, Edit3, ExternalLink, Loader2, Plus, RefreshCw, RotateCcw, Trash2, Wand2, X,
+  Award, Ban, Check, Copy, Download, Edit3, ExternalLink, ImagePlus, Loader2, Mail, Plus, RefreshCw, RotateCcw, Star, Trash2, Wand2, X,
 } from "lucide-react";
 import { useAuth } from "@clerk/react";
 import { useAdminApi } from "@/hooks/useAdminApi";
@@ -29,13 +29,13 @@ const TEMPLATES = {
   custom: { label: "Custom", facts: ["", ""], factDefaults: {}, art: { seal2_on: false }, disclaimer: "", tags: "" },
 };
 
-const EMPTY_ART = { kicker: "", line1: "", line2: "", sub: "", seal_abbr: "", seal_top: "", seal_bottom: "", seal2_on: false, s2_abbr: "", s2_top: "", s2_bottom: "", ribbon: "", ribbon_sub: "" };
+const EMPTY_ART = { kicker: "", line1: "", line2: "", sub: "", seal_abbr: "", seal_top: "", seal_bottom: "", seal_logo_id: "", seal2_on: false, s2_abbr: "", s2_top: "", s2_bottom: "", s2_logo_id: "", ribbon: "", ribbon_sub: "" };
 
 function fromTemplate(key) {
   const t = TEMPLATES[key];
   return {
     recipient_name: "", recipient_email: "", name: "", short: "", description: "", criteria: "",
-    disclaimer: t.disclaimer, tags: t.tags,
+    disclaimer: t.disclaimer, tags: t.tags, featured: false, send_email: true,
     facts: t.facts.map((label) => ({ label, value: t.factDefaults[label] || "" })),
     art: { ...EMPTY_ART, ...t.art },
   };
@@ -45,12 +45,12 @@ function fromBadge(b) {
   const a = b.art || {};
   return {
     recipient_name: b.recipient, recipient_email: b.recipient_email, name: b.name, short: b.short,
-    description: b.description, criteria: b.criteria || "", disclaimer: b.disclaimer || "", tags: (b.tags || []).join(", "),
+    description: b.description, criteria: b.criteria || "", disclaimer: b.disclaimer || "", tags: (b.tags || []).join(", "), featured: !!b.featured,
     facts: (b.facts || []).map((f) => ({ ...f })),
     art: {
       kicker: a.kicker || "", line1: (a.lines || [])[0] || "", line2: (a.lines || [])[1] || "", sub: a.sub || "",
-      seal_abbr: a.seal_abbr || "", seal_top: a.seal_top || "", seal_bottom: a.seal_bottom || "",
-      seal2_on: !!(a.seal2 && a.seal2.abbr), s2_abbr: a.seal2?.abbr || "", s2_top: a.seal2?.top || "", s2_bottom: a.seal2?.bottom || "",
+      seal_abbr: a.seal_abbr || "", seal_top: a.seal_top || "", seal_bottom: a.seal_bottom || "", seal_logo_id: a.seal_logo_id || "",
+      seal2_on: !!(a.seal2 && (a.seal2.abbr || a.seal2.logo_id)), s2_abbr: a.seal2?.abbr || "", s2_top: a.seal2?.top || "", s2_bottom: a.seal2?.bottom || "", s2_logo_id: a.seal2?.logo_id || "",
       ribbon: a.ribbon || "", ribbon_sub: a.ribbon_sub || "",
     },
   };
@@ -59,14 +59,16 @@ function fromBadge(b) {
 function artPayload(a) {
   return {
     kicker: a.kicker, lines: [a.line1, a.line2].filter((x) => x && x.trim()), sub: a.sub,
-    seal_abbr: a.seal_abbr, seal_top: a.seal_top, seal_bottom: a.seal_bottom,
-    seal2: a.seal2_on && a.s2_abbr.trim() ? { abbr: a.s2_abbr, top: a.s2_top, bottom: a.s2_bottom } : null,
+    seal_abbr: a.seal_abbr, seal_top: a.seal_top, seal_bottom: a.seal_bottom, seal_logo_id: a.seal_logo_id || null,
+    seal2: a.seal2_on && (a.s2_abbr.trim() || a.s2_logo_id) ? { abbr: a.s2_abbr, top: a.s2_top, bottom: a.s2_bottom, logo_id: a.s2_logo_id || null } : null,
     ribbon: a.ribbon, ribbon_sub: a.ribbon_sub,
   };
 }
 
-function toPayload(f) {
+function toPayload(f, isNew) {
   return {
+    featured: !!f.featured,
+    ...(isNew ? { send_email: !!f.send_email } : {}),
     recipient_name: f.recipient_name, recipient_email: f.recipient_email, name: f.name, short: f.short,
     description: f.description, criteria: f.criteria, disclaimer: f.disclaimer,
     facts: f.facts.filter((x) => x.label.trim() && x.value.trim()).map((x) => ({ label: x.label.trim(), value: x.value.trim() })),
@@ -100,6 +102,32 @@ function ArtInput({ label, value, onChange, max, testId, placeholder }) {
   );
 }
 
+/** Choose between the text seal and an uploaded official logo; upload new logos inline. */
+function SealLogoPicker({ label, value, onChange, logos, onUpload, uploading, testId }) {
+  const inputRef = useRef(null);
+  const current = logos.find((l) => l.id === value);
+  return (
+    <div className="field field--full seal-picker" data-testid={testId}>
+      <label>{label}</label>
+      <div className="seal-picker__row">
+        <button type="button" className={`seal-picker__opt ${!value ? "is-active" : ""}`} aria-pressed={!value} onClick={() => onChange("")} data-testid={`${testId}-text`}>
+          <span className="seal-picker__text">ABC</span><small>Text seal</small>
+        </button>
+        {logos.map((l) => (
+          <button key={l.id} type="button" className={`seal-picker__opt ${value === l.id ? "is-active" : ""}`} aria-pressed={value === l.id} onClick={() => onChange(l.id)} title={l.name} data-testid={`${testId}-logo-${l.id}`}>
+            <img src={`${API_BASE}${l.path}`} alt="" width="40" height="40" /><small>{l.name}</small>
+          </button>
+        ))}
+        <button type="button" className="seal-picker__opt seal-picker__opt--upload" onClick={() => inputRef.current?.click()} disabled={uploading} data-testid={`${testId}-upload-button`}>
+          {uploading ? <Loader2 className="spin" aria-hidden="true" /> : <ImagePlus aria-hidden="true" />}<small>Upload logo</small>
+        </button>
+        <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onUpload(f, onChange); }} data-testid={`${testId}-file-input`} />
+      </div>
+      {current && <p className="muted seal-picker__note">Using “{current.name}”. Ring text is hidden when a logo is used.</p>}
+    </div>
+  );
+}
+
 function BadgeEditor({ initial, editing, onClose, onSaved }) {
   const api = useAdminApi();
   const { getToken } = useAuth();
@@ -109,7 +137,27 @@ function BadgeEditor({ initial, editing, onClose, onSaved }) {
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [logos, setLogos] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const urlRef = useRef("");
+
+  useEffect(() => { api("/admin/badges/logos").then((d) => setLogos(d.items || [])).catch(() => {}); }, [api]);
+
+  const uploadLogo = async (file, select) => {
+    if (file.size > 3 * 1024 * 1024) { setError("Logo must be 3 MB or smaller."); return; }
+    setUploading(true); setError("");
+    try {
+      const token = await getToken();
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("name", file.name.replace(/\.[^.]+$/, "").slice(0, 80));
+      const res = await fetch(`${API_BASE}/admin/badges/logos`, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Upload failed");
+      setLogos((ls) => [d, ...ls]);
+      select(d.id);
+    } catch (e) { setError(e.message); } finally { setUploading(false); }
+  };
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const setArt = (patch) => setForm((f) => ({ ...f, art: { ...f.art, ...patch } }));
@@ -158,7 +206,7 @@ function BadgeEditor({ initial, editing, onClose, onSaved }) {
     e.preventDefault();
     setSaving(true); setError("");
     try {
-      const body = toPayload(form);
+      const body = toPayload(form, !editing);
       const saved = editing
         ? await api(`/admin/badges/${editing.id}`, { method: "PATCH", body })
         : await api("/admin/badges", { method: "POST", body });
@@ -238,17 +286,27 @@ function BadgeEditor({ initial, editing, onClose, onSaved }) {
                 <ArtInput label="Sub line" value={a.sub} max={34} onChange={(v) => setArt({ sub: v })} placeholder="GRADUATED 1999" testId="badge-art-sub" />
                 <ArtInput label="Title line 1" value={a.line1} max={18} onChange={(v) => setArt({ line1: v })} placeholder="COMPUTER" testId="badge-art-line1" />
                 <ArtInput label="Title line 2" value={a.line2} max={18} onChange={(v) => setArt({ line2: v })} placeholder="ENGINEERING" testId="badge-art-line2" />
-                <ArtInput label="University seal initials" value={a.seal_abbr} max={8} onChange={(v) => setArt({ seal_abbr: v })} placeholder="NU" testId="badge-art-seal-abbr" />
-                <ArtInput label="Seal ring — top" value={a.seal_top} max={48} onChange={(v) => setArt({ seal_top: v })} placeholder="NATIONAL UNIVERSITY" testId="badge-art-seal-top" />
-                <ArtInput label="Seal ring — bottom" value={a.seal_bottom} max={48} onChange={(v) => setArt({ seal_bottom: v })} placeholder="ACADEMIC TRANSCRIPT" testId="badge-art-seal-bottom" />
+                <SealLogoPicker label="University seal" value={a.seal_logo_id} onChange={(id) => setArt({ seal_logo_id: id })} logos={logos} onUpload={uploadLogo} uploading={uploading} testId="badge-seal1-picker" />
+                {!a.seal_logo_id && (
+                  <>
+                    <ArtInput label="University seal initials" value={a.seal_abbr} max={8} onChange={(v) => setArt({ seal_abbr: v })} placeholder="NU" testId="badge-art-seal-abbr" />
+                    <ArtInput label="Seal ring — top" value={a.seal_top} max={48} onChange={(v) => setArt({ seal_top: v })} placeholder="NATIONAL UNIVERSITY" testId="badge-art-seal-top" />
+                    <ArtInput label="Seal ring — bottom" value={a.seal_bottom} max={48} onChange={(v) => setArt({ seal_bottom: v })} placeholder="ACADEMIC TRANSCRIPT" testId="badge-art-seal-bottom" />
+                  </>
+                )}
                 <div className="field badge-ed__check">
                   <label><input type="checkbox" checked={a.seal2_on} onChange={(e) => setArt({ seal2_on: e.target.checked })} data-testid="badge-art-seal2-toggle" /> Second seal (e.g. USCES)</label>
                 </div>
                 {a.seal2_on && (
                   <>
-                    <ArtInput label="Second seal initials" value={a.s2_abbr} max={8} onChange={(v) => setArt({ s2_abbr: v })} placeholder="USCES" testId="badge-art-seal2-abbr" />
-                    <ArtInput label="Second seal — top" value={a.s2_top} max={48} onChange={(v) => setArt({ s2_top: v })} testId="badge-art-seal2-top" />
-                    <ArtInput label="Second seal — bottom" value={a.s2_bottom} max={48} onChange={(v) => setArt({ s2_bottom: v })} testId="badge-art-seal2-bottom" />
+                    <SealLogoPicker label="Second seal" value={a.s2_logo_id} onChange={(id) => setArt({ s2_logo_id: id })} logos={logos} onUpload={uploadLogo} uploading={uploading} testId="badge-seal2-picker" />
+                    {!a.s2_logo_id && (
+                      <>
+                        <ArtInput label="Second seal initials" value={a.s2_abbr} max={8} onChange={(v) => setArt({ s2_abbr: v })} placeholder="USCES" testId="badge-art-seal2-abbr" />
+                        <ArtInput label="Second seal — top" value={a.s2_top} max={48} onChange={(v) => setArt({ s2_top: v })} testId="badge-art-seal2-top" />
+                        <ArtInput label="Second seal — bottom" value={a.s2_bottom} max={48} onChange={(v) => setArt({ s2_bottom: v })} testId="badge-art-seal2-bottom" />
+                      </>
+                    )}
                   </>
                 )}
                 <ArtInput label="Ribbon" value={a.ribbon} max={26} onChange={(v) => setArt({ ribbon: v })} placeholder="USCES HOMOLOGATED" testId="badge-art-ribbon" />
@@ -265,10 +323,14 @@ function BadgeEditor({ initial, editing, onClose, onSaved }) {
               {previewing && preview && <span className="badge-ed__preview-busy"><Loader2 className="spin" aria-hidden="true" /></span>}
             </div>
             <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={refreshPreview} data-testid="badge-preview-refresh-button"><RefreshCw aria-hidden="true" /> Refresh preview</button>
-            <p className="muted badge-ed__hint">Text is upper-cased on the shield. Seal initials are your own text marks; no third-party logos are used.</p>
+            <p className="muted badge-ed__hint">Text is upper-cased on the shield. Only upload logos you have permission to use.</p>
           </aside>
         </div>
 
+        <div className="badge-ed__options">
+          <label><input type="checkbox" checked={!!form.featured} onChange={(e) => set({ featured: e.target.checked })} data-testid="badge-featured-toggle" /> Show on the About page (Leadership)</label>
+          {!editing && <label><input type="checkbox" checked={!!form.send_email} onChange={(e) => set({ send_email: e.target.checked })} data-testid="badge-send-email-toggle" /> Email the badge link and Credly PNG to the recipient</label>}
+        </div>
         {error && <p className="form-status form-status--error" role="alert" data-testid="badge-form-error">{error}</p>}
         <div className="form-actions">
           <button type="submit" className="btn btn-primary btn-pill btn-sm" disabled={saving} data-testid="badge-save-button">
@@ -302,6 +364,15 @@ export default function AdminBadgesPage() {
     load();
   };
   const restore = async (b) => { await api(`/admin/badges/${b.id}/restore`, { method: "POST" }); load(); };
+  const [mailing, setMailing] = useState("");
+  const [notice, setNotice] = useState(null);
+  const emailBadge = async (b) => {
+    if (!window.confirm(`Email "${b.short}" to ${b.recipient_email}?`)) return;
+    setMailing(b.id); setNotice(null);
+    try { await api(`/admin/badges/${b.id}/email`, { method: "POST" }); setNotice({ ok: true, text: `Badge emailed to ${b.recipient_email}.` }); }
+    catch (e) { setNotice({ ok: false, text: e.message }); }
+    finally { setMailing(""); load(); }
+  };
   const remove = async (b) => {
     if (!window.confirm(`Permanently delete "${b.short}"? Its link and any copies already added to Credly will stop verifying. Revoking is usually better.`)) return;
     await api(`/admin/badges/${b.id}`, { method: "DELETE" });
@@ -325,12 +396,14 @@ export default function AdminBadgesPage() {
         <button type="button" className="btn btn-primary btn-pill btn-sm" onClick={() => setEditor({ initial: null, editing: null })} data-testid="badge-new-button"><Plus aria-hidden="true" /> New badge</button>
       </div>
 
+      {notice && <p className={`form-status ${notice.ok ? "" : "form-status--error"}`} role="status" data-testid="badge-email-notice">{notice.text}</p>}
       {justIssued && (
         <section className="panel badge-issued" role="status" data-testid="badge-issued-panel">
           <img src={`${API_BASE}${justIssued.paths.image}`} alt="" width="72" height="72" />
           <div>
             <p className="badge-issued__title"><Check aria-hidden="true" /> Badge {justIssued.mode === "new" ? "issued" : "updated"}: {justIssued.short}</p>
             <p className="badge-issued__url" data-testid="badge-issued-url">{justIssued.urls.verify_page}</p>
+            {justIssued.email_queued && <p className="muted badge-issued__mail" data-testid="badge-issued-email-note"><Mail aria-hidden="true" /> Emailing the badge to {justIssued.recipient_email}…</p>}
             <div className="adminx__toolbar">
               <CopyButton text={justIssued.urls.verify_page} testId="badge-issued-copy-button" label="Copy badge URL" />
               <a className="btn btn-secondary btn-pill btn-sm" href={`${API_BASE}${justIssued.paths.baked}`} download data-testid="badge-issued-download"><Download aria-hidden="true" /> Download PNG for Credly</a>
@@ -363,9 +436,13 @@ export default function AdminBadgesPage() {
                   </td>
                   <td><strong>{b.recipient}</strong><small>{b.recipient_email}</small></td>
                   <td>{fmtDate(b.issued_on)}</td>
-                  <td>{b.status === "revoked"
-                    ? <span className="tag tag--muted" title={b.revocation_reason || ""} data-testid="badge-status-revoked">revoked</span>
-                    : <span className="tag tag--soft" data-testid="badge-status-active">active</span>}</td>
+                  <td>
+                    {b.status === "revoked"
+                      ? <span className="tag tag--muted" title={b.revocation_reason || ""} data-testid="badge-status-revoked">revoked</span>
+                      : <span className="tag tag--soft" data-testid="badge-status-active">active</span>}
+                    {b.featured && <span className="tag tag--soft badge-tag-featured" data-testid={`badge-featured-${b.slug}`}><Star aria-hidden="true" /> About page</span>}
+                    {b.last_email && <small className={b.last_email.ok ? "" : "badge-mail-fail"}>{b.last_email.ok ? "Emailed" : "Email failed"} {fmtDate(b.last_email.sent_at)}</small>}
+                  </td>
                   <td className="atable__actions">
                     <CopyButton text={b.urls.verify_page} testId={`badge-copy-${b.slug}`} />
                     <a className="btn btn-secondary btn-pill btn-sm" href={`/credentials/${b.id}`} target="_blank" rel="noopener noreferrer" data-testid={`badge-open-${b.slug}`}><ExternalLink aria-hidden="true" /> Page</a>
@@ -373,6 +450,7 @@ export default function AdminBadgesPage() {
                   </td>
                   <td className="atable__actions">
                     <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={() => setEditor({ initial: fromBadge(b), editing: b })} data-testid={`badge-edit-${b.slug}`}><Edit3 aria-hidden="true" /> Edit</button>
+                    {b.status !== "revoked" && <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={() => emailBadge(b)} disabled={mailing === b.id} data-testid={`badge-email-${b.slug}`}>{mailing === b.id ? <Loader2 className="spin" aria-hidden="true" /> : <Mail aria-hidden="true" />} Email</button>}
                     {b.status === "revoked"
                       ? <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={() => restore(b)} data-testid={`badge-restore-${b.slug}`}><RotateCcw aria-hidden="true" /> Restore</button>
                       : <button type="button" className="btn btn-secondary btn-pill btn-sm" onClick={() => revoke(b)} data-testid={`badge-revoke-${b.slug}`}><Ban aria-hidden="true" /> Revoke</button>}

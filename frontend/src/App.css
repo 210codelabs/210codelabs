@@ -1617,3 +1617,40 @@ a.inv-row:hover .inv-row__name { color: var(--cobalt); }
 .badge-ed__preview-box img { width: 100%; height: auto; }
 .badge-ed__preview-busy { position: absolute; top: 10px; right: 10px; color: var(--cobalt); }
 .badge-ed__hint { font-size: 12.5px; text-align: center; margin: 0; }
+.badge-ed__options { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 4px 0 8px; }
+.badge-ed__options label { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; color: var(--navy); cursor: pointer; }
+.badge-ed__options input { width: 18px; height: 18px; accent-color: var(--cobalt); }
+.seal-picker__row { display: flex; flex-wrap: wrap; gap: 8px; }
+.seal-picker__opt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 92px; min-height: 84px; padding: 8px 6px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--navy); cursor: pointer; transition: border-color 150ms var(--ease), transform 150ms var(--ease); }
+.seal-picker__opt:hover { border-color: #9fb3d3; transform: translateY(-1px); }
+.seal-picker__opt:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+.seal-picker__opt.is-active { border-color: var(--cobalt); box-shadow: 0 0 0 2px var(--cobalt-soft); }
+.seal-picker__opt:disabled { opacity: 0.6; cursor: progress; }
+.seal-picker__opt img { width: 40px; height: 40px; object-fit: contain; border-radius: 50%; background: var(--ice); }
+.seal-picker__opt svg { width: 22px; height: 22px; color: var(--cobalt); }
+.seal-picker__opt small { font-size: 11.5px; line-height: 1.2; text-align: center; color: var(--slate); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seal-picker__opt--upload { border-style: dashed; }
+.seal-picker__text { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--cobalt); font-weight: 800; font-size: 11px; color: var(--navy); }
+.seal-picker__note { margin: 6px 0 0; font-size: 12.5px; }
+.badge-issued__mail { display: flex; align-items: center; gap: 6px; margin: -4px 0 10px; font-size: 13px; }
+.badge-issued__mail svg { width: 14px; height: 14px; }
+.badge-tag-featured { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
+.badge-tag-featured svg { width: 12px; height: 12px; }
+.badge-mail-fail { color: var(--danger) !important; }
+.btn-linkedin { background: #0a66c2; color: #fff; border: 1px solid #0a66c2; }
+.btn-linkedin:hover { background: #004182; border-color: #004182; color: #fff; }
+.btn-linkedin:focus-visible { outline: 2px solid #0a66c2; outline-offset: 2px; }
+
+/* About — founder verified credentials */
+.founder-creds { margin-top: 48px; padding: 28px; border: 1px solid var(--ice-border); border-radius: 18px; background: var(--ice); }
+.founder-creds__head .muted { margin: 6px 0 20px; max-width: 70ch; }
+.founder-creds__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.founder-creds__item { display: flex; flex-direction: column; align-items: center; gap: 10px; height: 100%; padding: 18px 16px; border-radius: 14px; background: #fff; border: 1px solid var(--ice-border); text-decoration: none; text-align: center; box-shadow: var(--shadow-card); transition: transform 200ms var(--ease), box-shadow 200ms var(--ease); }
+.founder-creds__item:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
+.founder-creds__item:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 3px; }
+.founder-creds__item img { width: 120px; height: 120px; object-fit: contain; }
+.founder-creds__item--skeleton { min-height: 210px; background: linear-gradient(90deg, #fff, var(--ice-2), #fff); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.founder-creds__name { font-family: var(--font-display); font-weight: 700; color: var(--navy); font-size: 15px; line-height: 1.35; }
+.founder-creds__link { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--cobalt); margin-top: auto; }
+.founder-creds__link svg { width: 14px; height: 14px; }
+@media (prefers-reduced-motion: reduce) { .founder-creds__item--skeleton { animation: none; } }

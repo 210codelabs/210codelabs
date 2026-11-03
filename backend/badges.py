@@ -25,12 +25,23 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 
+import io
+import logging
 import os
-from fastapi import APIRouter, Depends, HTTPException
+from html import escape as esc
+from urllib.parse import urlencode
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, Response
+from PIL import Image
 from pydantic import BaseModel, EmailStr, Field
 
+import badge_art
 from badge_art import bake_png, render_art
+
+logger = logging.getLogger("210codelabs.badges")
+LINKEDIN_ORG_ID = os.environ.get("LINKEDIN_ORG_ID", "").strip()
+MAX_LOGO_BYTES = 3 * 1024 * 1024
 
 BASE = (os.environ.get("BADGE_BASE_URL") or "https://210codelabs.com").rstrip("/")
 OB_CONTEXT = "https://w3id.org/openbadges/v2"
@@ -171,10 +182,13 @@ async def seed(db) -> None:
             "description": s["description"], "criteria": s["criteria"], "disclaimer": s["disclaimer"],
             "facts": [{"label": k, "value": v} for k, v in s["facts"]], "art": s["art"], "tags": s["tags"],
             "recipient_name": "Ernesto Couso Artiles", "recipient_email": "ernesto@210codelabs.com",
-            "salt": LEGACY_SALT, "issued_on": "2026-11-02T00:00:00+00:00", "status": "active",
+            "salt": LEGACY_SALT, "issued_on": "2026-11-02T00:00:00+00:00", "status": "active", "featured": True,
             "created_at": now_iso(), "updated_at": now_iso(), "created_by": "seed",
         }
         await db.open_badges.update_one({"id": doc["id"]}, {"$setOnInsert": doc}, upsert=True)
+        # founder badges added before the "featured" flag existed default to showing on About
+        await db.open_badges.update_one({"id": doc["id"], "featured": {"$exists": False}}, {"$set": {"featured": True}})
+    await db.badge_logos.create_index("id", unique=True)
 
 
 # ---------------------------------------------------------------- JSON builders
@@ -223,13 +237,21 @@ def _identity(email: str, salt: str) -> str:
     return "sha256$" + hashlib.sha256((email.strip().lower() + salt).encode()).hexdigest()
 
 
+def _iso_z(value: str) -> str:
+    """ISO 8601 UTC with a trailing Z and whole seconds (strictest validators accept this)."""
+    dt = datetime.fromisoformat(value)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def assertion_json(b: dict) -> dict:
     u = urls(b)
     data = {
         "@context": OB_CONTEXT, "type": "Assertion", "id": u["assertion"],
         "recipient": {"type": "email", "hashed": True, "salt": b["salt"], "identity": _identity(b["recipient_email"], b["salt"])},
         "badge": u["badge_class"], "image": u["image"],
-        "verification": {"type": "hosted"}, "issuedOn": b["issued_on"],
+        "verification": {"type": "hosted"}, "issuedOn": _iso_z(b["issued_on"]),
         "narrative": b["criteria"],
         "evidence": [{"id": u["verify_page"], "name": "210Codelabs verification page", "narrative": b["disclaimer"]}],
     }
@@ -239,6 +261,17 @@ def assertion_json(b: dict) -> dict:
     return data
 
 
+def linkedin_add_url(b: dict) -> str:
+    issued = datetime.fromisoformat(b["issued_on"])
+    q = {"startTask": "CERTIFICATION_NAME", "name": b["short"]}
+    if LINKEDIN_ORG_ID:
+        q["organizationId"] = LINKEDIN_ORG_ID
+    else:
+        q["organizationName"] = "210Codelabs Corporation"
+    q.update({"issueYear": str(issued.year), "issueMonth": str(issued.month), "certUrl": urls(b)["verify_page"], "certId": b["id"]})
+    return "https://www.linkedin.com/profile/add?" + urlencode(q)
+
+
 def public_view(b: dict) -> dict:
     return {
         "id": b["id"], "slug": b["slug"], "name": b["name"], "short": b["short"],
@@ -246,13 +279,14 @@ def public_view(b: dict) -> dict:
         "description": b["description"], "disclaimer": b["disclaimer"], "facts": b.get("facts") or [],
         "tags": b.get("tags") or [], "status": b.get("status", "active"),
         "revocation_reason": b.get("revocation_reason") if b.get("status") == "revoked" else None,
-        "urls": urls(b), "paths": paths(b),
+        "urls": urls(b), "paths": paths(b), "linkedin_add_url": linkedin_add_url(b),
     }
 
 
 def admin_view(b: dict) -> dict:
     return {**public_view(b), "recipient_email": b["recipient_email"], "criteria": b["criteria"], "art": b["art"],
-            "created_at": b.get("created_at"), "updated_at": b.get("updated_at"), "created_by": b.get("created_by")}
+            "created_at": b.get("created_at"), "updated_at": b.get("updated_at"), "created_by": b.get("created_by"),
+            "featured": bool(b.get("featured")), "last_email": b.get("last_email")}
 
 
 # ---------------------------------------------------------------- input models
@@ -260,6 +294,7 @@ class Seal(BaseModel):
     abbr: str = Field("", max_length=8)
     top: str = Field("", max_length=48)
     bottom: str = Field("", max_length=48)
+    logo_id: Optional[str] = Field(None, max_length=40)
 
 
 class Art(BaseModel):
@@ -269,6 +304,7 @@ class Art(BaseModel):
     seal_abbr: str = Field("", max_length=8)
     seal_top: str = Field("", max_length=48)
     seal_bottom: str = Field("", max_length=48)
+    seal_logo_id: Optional[str] = Field(None, max_length=40)
     seal2: Optional[Seal] = None
     ribbon: str = Field("", max_length=26)
     ribbon_sub: str = Field("", max_length=36)
@@ -280,8 +316,13 @@ class Art(BaseModel):
             d[k] = (d[k] or "").strip()
         for k in ("kicker", "sub", "seal_top", "seal_bottom", "ribbon", "ribbon_sub"):
             d[k] = d[k].upper()
+        d["seal_logo_id"] = (d.get("seal_logo_id") or "").strip() or None
         s2 = d.get("seal2")
-        d["seal2"] = {"abbr": s2["abbr"].strip(), "top": s2["top"].strip().upper(), "bottom": s2["bottom"].strip().upper()} if s2 and (s2.get("abbr") or "").strip() else None
+        if s2 and ((s2.get("abbr") or "").strip() or (s2.get("logo_id") or "").strip()):
+            d["seal2"] = {"abbr": s2["abbr"].strip(), "top": s2["top"].strip().upper(), "bottom": s2["bottom"].strip().upper(),
+                          "logo_id": (s2.get("logo_id") or "").strip() or None}
+        else:
+            d["seal2"] = None
         return d
 
 
@@ -301,6 +342,8 @@ class BadgeIn(BaseModel):
     facts: List[Fact] = Field(default_factory=list, max_length=20)
     tags: List[str] = Field(default_factory=list, max_length=10)
     art: Art
+    featured: bool = False
+    send_email: bool = True
 
 
 class BadgePatch(BaseModel):
@@ -314,6 +357,7 @@ class BadgePatch(BaseModel):
     facts: Optional[List[Fact]] = Field(None, max_length=20)
     tags: Optional[List[str]] = Field(None, max_length=10)
     art: Optional[Art] = None
+    featured: Optional[bool] = None
 
 
 class RevokeIn(BaseModel):
@@ -329,6 +373,65 @@ def _clean_tags(tags: List[str]) -> List[str]:
     return [t.strip()[:40] for t in tags if t and t.strip()][:10]
 
 
+# ---------------------------------------------------------------- logos + email
+async def ensure_logos(db, art: dict) -> None:
+    """Load any uploaded seal logos referenced by `art` into the renderer's cache."""
+    ids = [art.get("seal_logo_id"), (art.get("seal2") or {}).get("logo_id")]
+    for lid in [i for i in ids if i and i not in badge_art.LOGOS]:
+        doc = await db.badge_logos.find_one({"id": lid}, {"_id": 0, "data": 1})
+        if doc:
+            badge_art.LOGOS[lid] = bytes(doc["data"])
+
+
+async def render_for(db, art: dict) -> bytes:
+    await ensure_logos(db, art)
+    return render_art(art)
+
+
+def badge_email_html(b: dict) -> str:
+    u = urls(b)
+    first = (b["recipient_name"].split(" ")[0] or "there")
+    btn = 'display:inline-block;padding:11px 20px;border-radius:999px;font-weight:700;text-decoration:none;margin:0 8px 10px 0'
+    return (
+        '<table role="presentation" width="100%" style="background:#f5f8fe;padding:24px 0;font-family:Arial,sans-serif">'
+        '<tr><td align="center">'
+        '<table role="presentation" width="600" style="background:#fff;border-radius:14px;padding:28px 32px;max-width:600px;text-align:left">'
+        '<tr><td><p style="margin:0;color:#687186;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700">210CODELABS</p>'
+        f'<h1 style="margin:6px 0 0;font-size:22px;color:#0a1d44">Your badge is ready, {esc(first)}.</h1>'
+        f'<p style="margin:10px 0 0;color:#44506a;font-size:15px;line-height:1.55">210Codelabs Corporation has issued you an Open Badge: <strong>{esc(b["short"])}</strong>.</p></td></tr>'
+        f'<tr><td align="center" style="padding:18px 0 6px"><img src="{esc(u["image"])}" width="220" height="220" alt="{esc(b["short"])} badge" style="display:block;border:0"></td></tr>'
+        '<tr><td style="padding-top:10px">'
+        f'<a href="{esc(u["verify_page"])}" style="{btn};background:#1450d8;color:#fff">View your badge</a>'
+        f'<a href="{esc(u["baked"])}" style="{btn};background:#eaf0ff;color:#0a1d44">Download PNG for Credly</a>'
+        f'<a href="{esc(linkedin_add_url(b))}" style="{btn};background:#eaf0ff;color:#0a1d44">Add to LinkedIn</a>'
+        '</td></tr>'
+        '<tr><td style="padding-top:8px;color:#44506a;font-size:13px;line-height:1.6">'
+        '<strong>Adding it to Credly:</strong> download the PNG, open your Credly Badge Wallet and choose to upload a badge from another provider. '
+        f'The email on your Credly account must be {esc(b["recipient_email"])} (confirmed) for the badge to verify.</td></tr>'
+        f'<tr><td style="padding-top:14px;color:#687186;font-size:12px;line-height:1.55">{esc(b["disclaimer"])}</td></tr>'
+        '<tr><td style="padding-top:14px;color:#687186;font-size:12px">210Codelabs Corporation · 500 Navarro St, 2nd floor PMB 7215, San Antonio, TX 78205. '
+        'Questions? Just reply to this email. We never ask for passwords or payment details by email.</td></tr>'
+        '</table></td></tr></table>'
+    )
+
+
+async def send_badge_email(db, aid: str) -> dict:
+    from email_sender import send_managed_email
+    b = await db.open_badges.find_one({"id": aid}, {"_id": 0})
+    if not b:
+        return {"ok": False, "message": "Badge not found"}
+    try:
+        res = await send_managed_email(to=b["recipient_email"], subject=f"Your 210Codelabs badge: {b['short']}", html=badge_email_html(b))
+        ok = bool(res.get("ok"))
+        info = {"ok": ok, "message": "" if ok else str(res.get("message") or res.get("detail") or "")[:200]}
+    except Exception as e:  # never break issuing on mail problems
+        logger.warning("badge email failed for %s: %s", aid, e)
+        info = {"ok": False, "message": str(e)[:200]}
+    info.update({"to": b["recipient_email"], "sent_at": now_iso()})
+    await db.open_badges.update_one({"id": aid}, {"$set": {"last_email": info}})
+    return info
+
+
 # ---------------------------------------------------------------- routers
 def _ld(data: dict, status_code: int = 200) -> JSONResponse:
     return JSONResponse(data, status_code=status_code, media_type="application/ld+json",
@@ -337,6 +440,11 @@ def _ld(data: dict, status_code: int = 200) -> JSONResponse:
 
 def build_router(db, require_superadmin) -> APIRouter:
     r = APIRouter(prefix="/api")
+
+    async def _check_logos(art: dict) -> None:
+        for lid in [art.get("seal_logo_id"), (art.get("seal2") or {}).get("logo_id")]:
+            if lid and not await db.badge_logos.find_one({"id": lid}, {"_id": 1}):
+                raise HTTPException(400, "Selected seal logo no longer exists")
 
     async def _get(aid: str) -> dict:
         b = await db.open_badges.find_one({"id": aid}, {"_id": 0})
@@ -361,13 +469,13 @@ def build_router(db, require_superadmin) -> APIRouter:
         b = await db.open_badges.find_one({"slug": slug}, {"_id": 0, "art": 1})
         if not b:
             raise HTTPException(404, "Badge not found")
-        return Response(render_art(b["art"]), media_type="image/png",
+        return Response(await render_for(db, b["art"]), media_type="image/png",
                         headers={"Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=3600"})
 
     @r.get("/badges/assertions/{aid}/baked.png")
     async def baked(aid: str):
         b = await _get(aid)
-        return Response(bake_png(render_art(b["art"]), urls(b)["assertion"]), media_type="image/png", headers={
+        return Response(bake_png(await render_for(db, b["art"]), urls(b)["assertion"]), media_type="image/png", headers={
             "Content-Disposition": f'attachment; filename="210codelabs-{b["slug"]}.png"',
             "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store",
         })
@@ -377,9 +485,21 @@ def build_router(db, require_superadmin) -> APIRouter:
         b = await _get(aid.removesuffix(".json"))
         return _ld(assertion_json(b))
 
+    @r.get("/badges/featured")
+    async def featured():
+        items = await db.open_badges.find({"featured": True, "status": "active"}, {"_id": 0}).sort("issued_on", 1).to_list(50)
+        return {"items": [public_view(b) for b in items]}
+
     @r.get("/badges/public/{aid}")
     async def public(aid: str):
         return public_view(await _get(aid))
+
+    @r.get("/badges/logos/{lid}.png")
+    async def logo_png(lid: str):
+        doc = await db.badge_logos.find_one({"id": lid}, {"_id": 0, "data": 1})
+        if not doc:
+            raise HTTPException(404, "Logo not found")
+        return Response(bytes(doc["data"]), media_type="image/png", headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
     # ---------- superadmin
     @r.get("/admin/badges/access")
@@ -388,7 +508,49 @@ def build_router(db, require_superadmin) -> APIRouter:
 
     @r.post("/admin/badges/preview")
     async def preview(art: Art, user: dict = Depends(require_superadmin)):
-        return Response(render_art(art.clean()), media_type="image/png", headers={"Cache-Control": "no-store"})
+        return Response(await render_for(db, art.clean()), media_type="image/png", headers={"Cache-Control": "no-store"})
+
+    # seal logos (defined before /admin/badges/{aid} so the path isn't captured)
+    @r.get("/admin/badges/logos")
+    async def list_logos(user: dict = Depends(require_superadmin)):
+        items = await db.badge_logos.find({}, {"_id": 0, "data": 0}).sort("created_at", -1).to_list(200)
+        for it in items:
+            it["path"] = f"/badges/logos/{it['id']}.png"
+            it["in_use"] = await db.open_badges.count_documents({"$or": [{"art.seal_logo_id": it["id"]}, {"art.seal2.logo_id": it["id"]}]})
+        return {"items": items}
+
+    @r.post("/admin/badges/logos")
+    async def upload_logo(file: UploadFile = File(...), name: str = Form(""), user: dict = Depends(require_superadmin)):
+        raw = await file.read(MAX_LOGO_BYTES + 1)
+        if len(raw) > MAX_LOGO_BYTES:
+            raise HTTPException(413, "Logo must be 3 MB or smaller")
+        try:
+            im = Image.open(io.BytesIO(raw))
+            if im.format not in ("PNG", "JPEG", "WEBP"):
+                raise ValueError(im.format)
+            im = im.convert("RGBA")
+        except Exception:
+            raise HTTPException(400, "Upload a PNG, JPG or WebP image")
+        im.thumbnail((640, 640), Image.LANCZOS)
+        buf = io.BytesIO()
+        im.save(buf, "PNG", optimize=True)
+        doc = {"id": str(uuid.uuid4()), "name": (name or file.filename or "Logo").strip()[:80],
+               "width": im.width, "height": im.height, "data": buf.getvalue(),
+               "created_at": now_iso(), "created_by": user.get("user_id")}
+        await db.badge_logos.insert_one(dict(doc))
+        doc.pop("data")
+        return {**doc, "path": f"/badges/logos/{doc['id']}.png", "in_use": 0}
+
+    @r.delete("/admin/badges/logos/{lid}")
+    async def delete_logo(lid: str, user: dict = Depends(require_superadmin)):
+        used = await db.open_badges.count_documents({"$or": [{"art.seal_logo_id": lid}, {"art.seal2.logo_id": lid}]})
+        if used:
+            raise HTTPException(409, f"This logo is used by {used} badge(s). Remove it from those badges first.")
+        res = await db.badge_logos.delete_one({"id": lid})
+        if not res.deleted_count:
+            raise HTTPException(404, "Logo not found")
+        badge_art.LOGOS.pop(lid, None)
+        return {"ok": True}
 
     @r.get("/admin/badges")
     async def list_badges(user: dict = Depends(require_superadmin)):
@@ -396,7 +558,7 @@ def build_router(db, require_superadmin) -> APIRouter:
         return {"items": [admin_view(b) for b in items]}
 
     @r.post("/admin/badges")
-    async def create(body: BadgeIn, user: dict = Depends(require_superadmin)):
+    async def create(body: BadgeIn, background: BackgroundTasks, user: dict = Depends(require_superadmin)):
         base = _slugify(body.short)
         slug = base
         while await db.open_badges.find_one({"slug": slug}, {"_id": 1}):
@@ -408,11 +570,14 @@ def build_router(db, require_superadmin) -> APIRouter:
             "disclaimer": (body.disclaimer or "").strip() or GENERIC_DISCLAIMER,
             "facts": [f.model_dump() for f in body.facts], "tags": _clean_tags(body.tags), "art": body.art.clean(),
             "recipient_name": body.recipient_name.strip(), "recipient_email": str(body.recipient_email).lower(),
-            "salt": secrets.token_hex(8), "issued_on": now_iso(), "status": "active",
+            "salt": secrets.token_hex(8), "issued_on": now_iso(), "status": "active", "featured": bool(body.featured),
             "created_at": now_iso(), "updated_at": now_iso(), "created_by": user.get("user_id"),
         }
+        await _check_logos(doc["art"])
         await db.open_badges.insert_one(dict(doc))
-        return admin_view(doc)
+        if body.send_email:
+            background.add_task(send_badge_email, db, doc["id"])
+        return {**admin_view(doc), "email_queued": bool(body.send_email)}
 
     @r.get("/admin/badges/{aid}")
     async def get_one(aid: str, user: dict = Depends(require_superadmin)):
@@ -436,6 +601,9 @@ def build_router(db, require_superadmin) -> APIRouter:
             upd["tags"] = _clean_tags(body.tags)
         if body.art is not None:
             upd["art"] = body.art.clean()
+            await _check_logos(upd["art"])
+        if body.featured is not None:
+            upd["featured"] = body.featured
         upd["updated_at"] = now_iso()
         await db.open_badges.update_one({"id": aid}, {"$set": upd})
         return admin_view(await _get(aid))
@@ -447,6 +615,16 @@ def build_router(db, require_superadmin) -> APIRouter:
             "status": "revoked", "revocation_reason": body.reason.strip() or "Revoked by issuer",
             "revoked_at": now_iso(), "updated_at": now_iso()}})
         return admin_view(await _get(aid))
+
+    @r.post("/admin/badges/{aid}/email")
+    async def email_badge(aid: str, user: dict = Depends(require_superadmin)):
+        b = await _get(aid)
+        if b.get("status") == "revoked":
+            raise HTTPException(400, "Restore the badge before emailing it")
+        info = await send_badge_email(db, aid)
+        if not info["ok"]:
+            raise HTTPException(502, f"Email could not be sent: {info.get('message') or 'unknown error'}")
+        return info
 
     @r.post("/admin/badges/{aid}/restore")
     async def restore(aid: str, user: dict = Depends(require_superadmin)):

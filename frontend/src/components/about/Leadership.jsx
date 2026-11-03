@@ -1,10 +1,41 @@
-import React from "react";
-import { ArrowUpRight, BadgeCheck, BookOpen, GraduationCap, MapPin } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowUpRight, BadgeCheck, BookOpen, GraduationCap, MapPin, ShieldCheck } from "lucide-react";
 import { CREDENTIALS_META } from "@/config/credentials";
 import { LEADER } from "@/config/company";
+import { API_BASE } from "@/config/site";
 import { SocialLinks } from "@/components/site/SocialLinks";
 
 const fmtDate = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
+/** Verified-degree badges marked "Show on About page" in the admin OpenBadges section. */
+function FounderCredentials() {
+  const [items, setItems] = useState(null);
+  useEffect(() => {
+    fetch(`${API_BASE}/badges/featured`).then((r) => (r.ok ? r.json() : { items: [] })).then((d) => setItems(d.items || [])).catch(() => setItems([]));
+  }, []);
+  if (items !== null && items.length === 0) return null; // nothing featured: hide the card entirely
+  return (
+    <div className="founder-creds" data-testid="founder-credentials">
+      <div className="founder-creds__head">
+        <h3 className="leader-extra__title"><ShieldCheck aria-hidden="true" /> Verified academic credentials</h3>
+        <p className="muted">Degree equivalencies by USCES, LLC and university records, reviewed by 210Codelabs. Open any badge to see what was verified.</p>
+      </div>
+      <ul className="founder-creds__grid">
+        {items === null && [0, 1, 2].map((i) => <li key={i} className="founder-creds__item founder-creds__item--skeleton" aria-hidden="true" />)}
+        {items && items.map((b) => (
+          <li key={b.id}>
+            <Link to={`/credentials/${b.id}`} className="founder-creds__item" data-testid={`founder-credential-${b.slug}`}>
+              <img src={`${API_BASE}${b.paths.image}`} alt="" width="120" height="120" loading="lazy" />
+              <span className="founder-creds__name">{b.short}</span>
+              <span className="founder-creds__link">View verification <ArrowUpRight aria-hidden="true" /></span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export const Leadership = () => (
   <section id="leadership" className="section leadership" aria-labelledby="leadership-title" data-testid="leadership-section">
@@ -99,6 +130,8 @@ export const Leadership = () => (
           </ul>
         </div>
       </div>
+
+      <FounderCredentials />
     </div>
   </section>
 );
