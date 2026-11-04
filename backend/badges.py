@@ -409,8 +409,6 @@ def badge_email_html(b: dict) -> str:
         '<strong>Adding it to Credly:</strong> download the PNG, open your Credly Badge Wallet and choose to upload a badge from another provider. '
         f'The email on your Credly account must be {esc(b["recipient_email"])} (confirmed) for the badge to verify.</td></tr>'
         f'<tr><td style="padding-top:14px;color:#687186;font-size:12px;line-height:1.55">{esc(b["disclaimer"])}</td></tr>'
-        '<tr><td style="padding-top:14px;color:#687186;font-size:12px">210Codelabs Corporation · 500 Navarro St, 2nd floor PMB 7215, San Antonio, TX 78205. '
-        'Questions? Just reply to this email. We never ask for passwords or payment details by email.</td></tr>'
         '</table></td></tr></table>'
     )
 

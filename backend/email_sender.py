@@ -18,6 +18,8 @@ from urllib.parse import urlparse
 import httpx
 import resend
 
+from email_footer import inject_footer
+
 logger = logging.getLogger("210codelabs.email")
 
 # ----- Legacy Emergent proxy (used only as a fallback) -----
@@ -122,6 +124,8 @@ async def send_managed_email(*, to: str, subject: str, html: str) -> dict:
       ValueError: guardrail failure.
       RuntimeError: no email provider configured.
     """
+    # Every outbound transactional email gets the shared branded signature.
+    html = inject_footer(html)
     _assert_safe_email(subject, html)
 
     if _RESEND_KEY and _RESEND_FROM_EMAIL:

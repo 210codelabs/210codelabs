@@ -1095,7 +1095,6 @@ async def _build_digest(db):
         f'<tr><td>{section("Overdue tasks", [task_row(t) for t in overdue])}</td></tr>'
         f'<tr><td>{section("Qualified leads to follow up on", [lead_row(L | {"_name": contacts.get(L.get("contact_id") or "", {}).get("name") or L.get("contact_id") or "", "_email": "", "_company": contacts.get(L.get("contact_id") or "", {}).get("company") or ""}) for L in pending_qualified])}</td></tr>'
         f'<tr><td style="padding-top:18px"><a href="{workspace_url}" style="display:inline-block;background:#1450d8;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:700">Open the admin workspace</a></td></tr>'
-        f'<tr><td style="padding-top:14px;color:#687186;font-size:12px">Sent by 210Codelabs Corporation \u00b7 500 Navarro St, 2nd floor PMB 7215, San Antonio, TX 78205. We never ask for your password or codes by email.</td></tr>'
         '</table></td></tr></table>'
     )
     return html, subject, counts

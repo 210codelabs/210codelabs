@@ -1,34 +1,18 @@
 [
   {
-    "content": "Backend: add Emergent storage upload/download + attach to support tickets & comments",
+    "content": "Create /app/backend/email_footer.py with shared branded signature (logo, website, support email, portal, socials, legal + unsubscribe)",
     "status": "completed"
   },
   {
-    "content": "Backend: email notifications on ticket create / client reply / staff reply / status change",
+    "content": "Inject footer automatically from send_managed_email() so every transactional email gets it",
     "status": "completed"
   },
   {
-    "content": "Backend: /api/cron/support-auto-close endpoint + entry in crons.yml",
+    "content": "Trim redundant boilerplate lines from support/booking/badge/digest templates to avoid duplication",
     "status": "completed"
   },
   {
-    "content": "Backend: /api/support/ai-assist endpoint using Emergent LLM key with category suggestion",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend client: drag-and-drop uploads in new-ticket + reply + thumbnails in thread",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend client: floating AI assistant widget with FAQs + category suggestion",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend admin: show attachments in admin ticket thread + download links",
-    "status": "completed"
-  },
-  {
-    "content": "CSS + compile + screenshot verification",
+    "content": "Verify guardrail passes + test rendered HTML via backend quick script",
     "status": "completed"
   }
 ]

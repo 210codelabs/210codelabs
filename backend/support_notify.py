@@ -142,9 +142,6 @@ def _layout(headline: str, body_html: str, cta_label: str, cta_url: str) -> str:
           <tr><td style="padding:10px 32px 28px;">
             <a href="{escape(cta_url)}" style="display:inline-block;background:#1450d8;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700;font-size:14px;">{escape(cta_label)}</a>
           </td></tr>
-          <tr><td style="padding:14px 32px 24px;border-top:1px solid #e3ecf7;font-size:12px;color:#536081;line-height:1.55;">
-            You are receiving this because you have a 210Codelabs client-support account. If this doesn't look right, reply to let us know.
-          </td></tr>
         </table>
       </td></tr>
     </table>

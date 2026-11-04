@@ -96,7 +96,6 @@ def _email_html(*, heading: str, intro: str, appt: dict, cta_label: str, footer_
         '</table></td></tr>'
         f'<tr><td style="padding-top:20px"><a href="{esc(link)}" style="display:inline-block;background:#1450d8;color:#fff;text-decoration:none;padding:11px 20px;border-radius:999px;font-weight:700">{esc(cta_label)}</a></td></tr>'
         f'<tr><td style="padding-top:14px;color:#44506a;font-size:13px;line-height:1.55">{esc(footer_note)} Questions? Just reply to this email.</td></tr>'
-        f'<tr><td style="padding-top:18px;color:#687186;font-size:12px">{esc(ADDRESS_LINE)}. We never ask for passwords or payment details by email.</td></tr>'
         '</table></td></tr></table>'
     )
 
