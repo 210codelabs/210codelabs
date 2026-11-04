@@ -11,7 +11,8 @@ export const SITE = {
   description:
     "210Codelabs Corporation designs and builds next-generation software systems, AI-powered products, and cloud-native platforms that turn bold ideas into real-world impact.",
   copyright: "© 2026 210Codelabs Corporation. All rights reserved.",
-  logo: "/assets/brand-logo-original-reference.png",
+  logo: "/assets/brand-logo-2026.webp",
+  logoSmall: "/assets/brand-logo-2026-540.webp",
   logoAlt: "210 Codelabs — Precision Code, Innovative Solutions",
 };
 
