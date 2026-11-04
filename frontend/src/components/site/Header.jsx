@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowRight, LifeBuoy, Menu, X, ChevronDown } from "lucide-react";
-import { NAV } from "@/config/site";
+import { LifeBuoy, Menu, X, ChevronDown, CreditCard } from "lucide-react";
+import { NAV, PAY_PORTAL_URL } from "@/config/site";
 import { Logo } from "@/components/site/Logo";
 import { useScrollTo } from "@/hooks/useScrollTo";
 
@@ -230,16 +230,29 @@ export const Header = () => {
           </ul>
         </nav>
 
-        <a
-          href="/support"
-          target="_blank"
-          rel="noopener"
-          className="btn btn-primary btn-header"
-          onClick={onCta}
-          data-testid="header-primary-cta-button"
-        >
-          <LifeBuoy aria-hidden="true" /> Client Support
-        </a>
+        <div className="site-header__actions">
+          <a
+            href={PAY_PORTAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary btn-header"
+            onClick={onCta}
+            aria-label="Pay Portal (opens in a new tab)"
+            data-testid="header-pay-portal-button"
+          >
+            <CreditCard aria-hidden="true" /> Pay Portal
+          </a>
+          <a
+            href="/support"
+            target="_blank"
+            rel="noopener"
+            className="btn btn-primary btn-header"
+            onClick={onCta}
+            data-testid="header-primary-cta-button"
+          >
+            <LifeBuoy aria-hidden="true" /> Client Support
+          </a>
+        </div>
 
         <button
           ref={toggleRef}
@@ -297,6 +310,17 @@ export const Header = () => {
             data-testid="mobile-menu-cta-button"
           >
             <LifeBuoy aria-hidden="true" /> Client Support
+          </a>
+          <a
+            href={PAY_PORTAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary btn-pill mobile-menu__cta mobile-menu__cta--secondary"
+            onClick={onCta}
+            aria-label="Pay Portal (opens in a new tab)"
+            data-testid="mobile-menu-pay-portal-button"
+          >
+            <CreditCard aria-hidden="true" /> Pay Portal
           </a>
         </nav>
       </div>

@@ -39,6 +39,9 @@ export const CONTACT = {
   },
 };
 
+// External payment portal (opens in a new tab from the header).
+export const PAY_PORTAL_URL = "https://pay.210codelabs.com/p/login/eVq8wP7371UO9gFfvnaMU00";
+
 export const API_BASE = `${BACKEND_URL}/api`;
 
 export const NAV = [
@@ -65,7 +68,6 @@ export const NAV = [
   },
   { label: "Pricing", to: "/pricing" },
   { label: "Our Work", to: "/work", section: "work" },
-  { label: "For Investors", to: "/investors" },
   { label: "Blog", to: "/blog" },
   { label: "Contact", to: "/contact", section: "contact" },
 ];
