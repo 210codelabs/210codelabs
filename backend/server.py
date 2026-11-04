@@ -320,9 +320,14 @@ app.include_router(build_booking_emails_router(db))
 
 # Open Badges 2.0 (hosted) for the founder's reviewed academic records
 from badges import build_router as build_badges_router, seed as seed_badges  # noqa: E402
-from clerk_auth import require_superadmin  # noqa: E402
+from clerk_auth import require_superadmin, require_admin as require_clerk_admin_user  # noqa: E402
 
 app.include_router(build_badges_router(db, require_superadmin))
+
+# Customer Support — client JWT portal + Clerk-protected admin desk
+from support import build_router as build_support_router, seed_indexes as seed_support_indexes  # noqa: E402
+
+app.include_router(build_support_router(db, require_clerk_admin_user))
 
 
 app.add_middleware(
@@ -337,6 +342,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup():
     await seed_badges(db)
+    await seed_support_indexes(db)
     await db.contact_messages.create_index("id", unique=True)
     await db.contact_messages.create_index("created_at")
     await db.admin_sessions.create_index("token", unique=True)

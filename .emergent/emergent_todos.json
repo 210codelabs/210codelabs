@@ -1,30 +1,26 @@
 [
   {
-    "content": "Create per-industry detail content config (challenges, approach, scenarios, ROI targets, services, frameworks)",
+    "content": "Build backend /app/backend/support.py — JWT auth for clients, tickets + comments CRUD, request-access flow, admin endpoints",
     "status": "completed"
   },
   {
-    "content": "Build IndustryDetailPage.jsx with hero, challenges, approach, scenarios, recommended services, CTAs",
+    "content": "Wire support router into server.py and add Mongo indexes",
     "status": "completed"
   },
   {
-    "content": "Make IndustriesPage cards clickable to the detail routes",
+    "content": "Build /support client portal (login + request access + dashboard + ticket detail)",
     "status": "completed"
   },
   {
-    "content": "Extend Header.jsx + NAV to support an Industries dropdown with all 11 sub-items (desktop hover + mobile expandable)",
+    "content": "Build /admin/support admin desk (ticket queue + reply + user provisioning + access-request approvals)",
     "status": "completed"
   },
   {
-    "content": "Add Pricing Comparison section: side-by-side retainer tiers table + discovery tiers table",
+    "content": "Rename Header 'Let's Build' → 'Client Support' opening /support in new tab; add Support Desk subitem in AdminShell nav (new tab)",
     "status": "completed"
   },
   {
-    "content": "Append new CSS: industry-detail, nav dropdown, pricing-compare tables",
-    "status": "completed"
-  },
-  {
-    "content": "Wire /industries/:slug route; verify esbuild and screenshot",
+    "content": "Add CSS; wire routes; esbuild compile check; screenshot verification",
     "status": "completed"
   }
 ]

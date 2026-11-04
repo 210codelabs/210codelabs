@@ -43,7 +43,9 @@ import AdminAutomationsPage from "@/pages/admin/AdminAutomationsPage";
 import AdminIntegrationsPage from "@/pages/admin/AdminIntegrationsPage";
 import AdminUsersPage from "@/pages/admin/AdminUsersPage";
 import AdminBadgesPage from "@/pages/admin/AdminBadgesPage";
+import AdminSupportPage from "@/pages/admin/AdminSupportPage";
 import AdminSettingsPage from "@/pages/admin/AdminSettingsPage";
+import SupportPortalPage from "@/pages/SupportPortalPage";
 import { captureAttribution } from "@/lib/attribution";
 
 function AttributionCapture() {
@@ -99,8 +101,11 @@ function App() {
             <Route path="integrations" element={<AdminIntegrationsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="badges" element={<AdminBadgesPage />} />
+            <Route path="support" element={<AdminSupportPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
           </Route>
+          {/* Public client Support portal (standalone, no main Layout) */}
+          <Route path="support/*" element={<SupportPortalPage />} />
           {/* Legacy password-protected admin pages (preserved) */}
           <Route path="admin/messages" element={<AdminMessagesPage />} />
           <Route path="admin/blog" element={<AdminBlogPage />} />

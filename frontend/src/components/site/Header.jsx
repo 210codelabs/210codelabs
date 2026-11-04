@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowRight, Menu, X, ChevronDown } from "lucide-react";
+import { ArrowRight, LifeBuoy, Menu, X, ChevronDown } from "lucide-react";
 import { NAV } from "@/config/site";
 import { Logo } from "@/components/site/Logo";
 import { useScrollTo } from "@/hooks/useScrollTo";
@@ -198,11 +198,7 @@ export const Header = () => {
     }
   };
 
-  const onCta = (e) => {
-    e.preventDefault();
-    setOpen(false);
-    scrollTo("contact");
-  };
+  const onCta = () => { setOpen(false); };
 
   return (
     <header ref={headerRef} className={`site-header ${scrolled ? "is-scrolled" : ""}`} data-testid="site-header">
@@ -234,8 +230,15 @@ export const Header = () => {
           </ul>
         </nav>
 
-        <a href="/#contact" className="btn btn-primary btn-header" onClick={onCta} data-testid="header-primary-cta-button">
-          Let’s Build <ArrowRight aria-hidden="true" />
+        <a
+          href="/support"
+          target="_blank"
+          rel="noopener"
+          className="btn btn-primary btn-header"
+          onClick={onCta}
+          data-testid="header-primary-cta-button"
+        >
+          <LifeBuoy aria-hidden="true" /> Client Support
         </a>
 
         <button
@@ -285,8 +288,15 @@ export const Header = () => {
               );
             })}
           </ul>
-          <a href="/#contact" className="btn btn-primary btn-pill mobile-menu__cta" onClick={onCta} data-testid="mobile-menu-cta-button">
-            Let’s Build <ArrowRight aria-hidden="true" />
+          <a
+            href="/support"
+            target="_blank"
+            rel="noopener"
+            className="btn btn-primary btn-pill mobile-menu__cta"
+            onClick={onCta}
+            data-testid="mobile-menu-cta-button"
+          >
+            <LifeBuoy aria-hidden="true" /> Client Support
           </a>
         </nav>
       </div>
