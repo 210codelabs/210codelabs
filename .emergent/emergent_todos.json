@@ -1,30 +1,30 @@
 [
   {
-    "content": "Add GitHub (ecouso1977) to Ernesto's profile socials",
+    "content": "Create pricing data config with all categories and services",
     "status": "completed"
   },
   {
-    "content": "Add to LinkedIn button on verify pages (server-built URL)",
+    "content": "Create industries + frameworks + practices data config",
     "status": "completed"
   },
   {
-    "content": "Official seal logo uploads (superadmin) + render in seals",
+    "content": "Build PricingPage.jsx (hero, custom-pricing feature, tabs, cards, FAQ, final CTA)",
     "status": "completed"
   },
   {
-    "content": "Founder credentials card on About/Leadership (featured badges)",
+    "content": "Build IndustriesPage.jsx (hero, industries, frameworks, practices, engagement, disclaimers, final CTA)",
     "status": "completed"
   },
   {
-    "content": "Badge email delivery on issue + resend",
+    "content": "Append pricing + industries CSS to App.css matching existing tokens",
     "status": "completed"
   },
   {
-    "content": "Fix Credly rejection: bundle fonts (prod image 500) + issuedOn Z format",
+    "content": "Wire /pricing and /industries routes + add to NAV",
     "status": "completed"
   },
   {
-    "content": "Test all with testing agent",
+    "content": "Verify esbuild + screenshot both pages",
     "status": "completed"
   }
 ]

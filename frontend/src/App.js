@@ -6,6 +6,8 @@ import Layout from "@/components/site/Layout";
 import HomePage from "@/pages/HomePage";
 import AboutPage from "@/pages/AboutPage";
 import CapabilitiesPage from "@/pages/CapabilitiesPage";
+import PricingPage from "@/pages/PricingPage";
+import IndustriesPage from "@/pages/IndustriesPage";
 import WorkPage from "@/pages/WorkPage";
 import WorkDetailPage from "@/pages/WorkDetailPage";
 import InvestorsPage from "@/pages/InvestorsPage";
@@ -59,6 +61,8 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="capabilities" element={<CapabilitiesPage />} />
+            <Route path="pricing" element={<PricingPage />} />
+            <Route path="industries" element={<IndustriesPage />} />
             <Route path="work" element={<WorkPage />} />
             <Route path="work/:slug" element={<WorkDetailPage />} />
             <Route path="solutions/:slug" element={<SolutionDetailPage />} />

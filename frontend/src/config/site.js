@@ -45,6 +45,8 @@ export const NAV = [
   { label: "Home", to: "/", section: "top" },
   { label: "About", to: "/about" },
   { label: "Capabilities", to: "/capabilities", section: "capabilities" },
+  { label: "Industries", to: "/industries" },
+  { label: "Pricing", to: "/pricing" },
   { label: "Our Work", to: "/work", section: "work" },
   { label: "For Investors", to: "/investors" },
   { label: "Blog", to: "/blog" },
