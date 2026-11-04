@@ -1,30 +1,30 @@
 [
   {
-    "content": "Create pricing data config with all categories and services",
+    "content": "Create per-industry detail content config (challenges, approach, scenarios, ROI targets, services, frameworks)",
     "status": "completed"
   },
   {
-    "content": "Create industries + frameworks + practices data config",
+    "content": "Build IndustryDetailPage.jsx with hero, challenges, approach, scenarios, recommended services, CTAs",
     "status": "completed"
   },
   {
-    "content": "Build PricingPage.jsx (hero, custom-pricing feature, tabs, cards, FAQ, final CTA)",
+    "content": "Make IndustriesPage cards clickable to the detail routes",
     "status": "completed"
   },
   {
-    "content": "Build IndustriesPage.jsx (hero, industries, frameworks, practices, engagement, disclaimers, final CTA)",
+    "content": "Extend Header.jsx + NAV to support an Industries dropdown with all 11 sub-items (desktop hover + mobile expandable)",
     "status": "completed"
   },
   {
-    "content": "Append pricing + industries CSS to App.css matching existing tokens",
+    "content": "Add Pricing Comparison section: side-by-side retainer tiers table + discovery tiers table",
     "status": "completed"
   },
   {
-    "content": "Wire /pricing and /industries routes + add to NAV",
+    "content": "Append new CSS: industry-detail, nav dropdown, pricing-compare tables",
     "status": "completed"
   },
   {
-    "content": "Verify esbuild + screenshot both pages",
+    "content": "Wire /industries/:slug route; verify esbuild and screenshot",
     "status": "completed"
   }
 ]

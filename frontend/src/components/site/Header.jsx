@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X, ChevronDown } from "lucide-react";
 import { NAV } from "@/config/site";
 import { Logo } from "@/components/site/Logo";
 import { useScrollTo } from "@/hooks/useScrollTo";
@@ -31,6 +31,120 @@ function useHomeScrollSpy(enabled) {
   return active;
 }
 
+/** Desktop dropdown item with hover + keyboard behavior. */
+function NavDropdown({ item, isActive, testIdBase }) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef(null);
+  const wrapRef = useRef(null);
+
+  const openNow = () => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } setOpen(true); };
+  const closeSoon = () => { if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setOpen(false), 120); };
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <li
+      ref={wrapRef}
+      className="site-nav__dd"
+      onMouseEnter={openNow}
+      onMouseLeave={closeSoon}
+    >
+      <Link
+        to={item.to}
+        className={`site-nav__link site-nav__link--has-children ${isActive ? "is-active" : ""}`}
+        aria-current={isActive ? "page" : undefined}
+        aria-haspopup="true"
+        aria-expanded={open}
+        data-testid={`${testIdBase}-link`}
+        onFocus={openNow}
+        onClick={() => setOpen(false)}
+      >
+        {item.label}
+        <ChevronDown aria-hidden="true" className="site-nav__chev" />
+      </Link>
+      <div
+        className={`site-nav__panel ${open ? "is-open" : ""}`}
+        role="menu"
+        data-testid={`${testIdBase}-panel`}
+        onFocus={openNow}
+      >
+        <ul>
+          {item.children.map((c) => (
+            <li key={c.to} role="none">
+              <Link
+                to={c.to}
+                role="menuitem"
+                className="site-nav__panel-link"
+                onClick={() => setOpen(false)}
+                data-testid={`${testIdBase}-item-${c.to.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "")}`}
+              >
+                {c.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </li>
+  );
+}
+
+/** Mobile expandable sub-list. */
+function MobileSubmenu({ item, isActive, onNavigate, testIdBase }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li>
+      <div className="mobile-menu__row">
+        <Link
+          to={item.to}
+          className={`mobile-menu__link ${isActive ? "is-active" : ""}`}
+          aria-current={isActive ? "page" : undefined}
+          onClick={onNavigate}
+          data-testid={`mobile-nav-${item.label.toLowerCase().replace(/\s+/g, "-")}-link`}
+        >
+          {item.label}
+        </Link>
+        <button
+          type="button"
+          className={`mobile-menu__expand ${open ? "is-open" : ""}`}
+          aria-expanded={open}
+          aria-label={`${open ? "Collapse" : "Expand"} ${item.label}`}
+          onClick={() => setOpen((v) => !v)}
+          data-testid={`${testIdBase}-toggle`}
+        >
+          <ChevronDown aria-hidden="true" />
+        </button>
+      </div>
+      {open && (
+        <ul className="mobile-menu__submenu" data-testid={`${testIdBase}-submenu`}>
+          {item.children.map((c) => (
+            <li key={c.to}>
+              <Link
+                to={c.to}
+                className="mobile-menu__sublink"
+                onClick={onNavigate}
+                data-testid={`${testIdBase}-item-${c.to.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "")}`}
+              >
+                {c.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 export const Header = () => {
   const location = useLocation();
   const isHome = location.pathname === "/";
@@ -53,20 +167,12 @@ export const Header = () => {
     if (returnFocus && toggleRef.current) toggleRef.current.focus();
   }, []);
 
-  // Close on route change
-  useEffect(() => {
-    setOpen(false);
-  }, [location.pathname, location.hash]);
+  useEffect(() => { setOpen(false); }, [location.pathname, location.hash]);
 
-  // Escape + outside click
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") close(true);
-    };
-    const onPointer = (e) => {
-      if (headerRef.current && !headerRef.current.contains(e.target)) close(false);
-    };
+    const onKey = (e) => { if (e.key === "Escape") close(true); };
+    const onPointer = (e) => { if (headerRef.current && !headerRef.current.contains(e.target)) close(false); };
     document.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onPointer);
     const t = setTimeout(() => firstLinkRef.current && firstLinkRef.current.focus(), 30);
@@ -107,6 +213,10 @@ export const Header = () => {
           <ul>
             {NAV.map((item) => {
               const active = item.to === "/" ? isHome && spy === "top" : isActive(item);
+              const testBase = `header-nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`;
+              if (item.children && item.children.length > 0) {
+                return <NavDropdown key={item.to} item={item} isActive={active} testIdBase={testBase} />;
+              }
               return (
                 <li key={item.to}>
                   <Link
@@ -114,7 +224,7 @@ export const Header = () => {
                     className={`site-nav__link ${active ? "is-active" : ""}`}
                     aria-current={active ? "page" : undefined}
                     onClick={(e) => onNavClick(e, item)}
-                    data-testid={`header-nav-${item.label.toLowerCase().replace(/\s+/g, "-")}-link`}
+                    data-testid={`${testBase}-link`}
                   >
                     {item.label}
                   </Link>
@@ -147,6 +257,18 @@ export const Header = () => {
           <ul>
             {NAV.map((item, i) => {
               const active = item.to === "/" ? isHome && spy === "top" : isActive(item);
+              const testBase = `mobile-nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`;
+              if (item.children && item.children.length > 0) {
+                return (
+                  <MobileSubmenu
+                    key={item.to}
+                    item={item}
+                    isActive={active}
+                    onNavigate={(e) => onNavClick(e, item)}
+                    testIdBase={testBase}
+                  />
+                );
+              }
               return (
                 <li key={item.to}>
                   <Link
@@ -155,7 +277,7 @@ export const Header = () => {
                     className={`mobile-menu__link ${active ? "is-active" : ""}`}
                     aria-current={active ? "page" : undefined}
                     onClick={(e) => onNavClick(e, item)}
-                    data-testid={`mobile-nav-${item.label.toLowerCase().replace(/\s+/g, "-")}-link`}
+                    data-testid={`${testBase}-link`}
                   >
                     {item.label}
                   </Link>

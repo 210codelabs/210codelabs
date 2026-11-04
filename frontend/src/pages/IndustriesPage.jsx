@@ -118,11 +118,19 @@ export default function IndustriesPage() {
             {INDUSTRIES.map((ind) => {
               const Icon = INDUSTRY_ICONS[ind.icon] || Layers;
               return (
-                <article key={ind.slug} className="industry-card" data-testid={`industry-${ind.slug}`}>
+                <Link
+                  key={ind.slug}
+                  to={`/industries/${ind.slug}`}
+                  className="industry-card industry-card--link"
+                  data-testid={`industry-${ind.slug}`}
+                >
                   <div className="industry-card__icon" aria-hidden="true"><Icon /></div>
                   <h3 className="industry-card__name">{ind.name}</h3>
                   <p className="industry-card__text">{ind.text}</p>
-                </article>
+                  <span className="industry-card__cta">
+                    Explore <ArrowRight aria-hidden="true" />
+                  </span>
+                </Link>
               );
             })}
           </div>

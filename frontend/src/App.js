@@ -8,6 +8,7 @@ import AboutPage from "@/pages/AboutPage";
 import CapabilitiesPage from "@/pages/CapabilitiesPage";
 import PricingPage from "@/pages/PricingPage";
 import IndustriesPage from "@/pages/IndustriesPage";
+import IndustryDetailPage from "@/pages/IndustryDetailPage";
 import WorkPage from "@/pages/WorkPage";
 import WorkDetailPage from "@/pages/WorkDetailPage";
 import InvestorsPage from "@/pages/InvestorsPage";
@@ -63,6 +64,7 @@ function App() {
             <Route path="capabilities" element={<CapabilitiesPage />} />
             <Route path="pricing" element={<PricingPage />} />
             <Route path="industries" element={<IndustriesPage />} />
+            <Route path="industries/:slug" element={<IndustryDetailPage />} />
             <Route path="work" element={<WorkPage />} />
             <Route path="work/:slug" element={<WorkDetailPage />} />
             <Route path="solutions/:slug" element={<SolutionDetailPage />} />

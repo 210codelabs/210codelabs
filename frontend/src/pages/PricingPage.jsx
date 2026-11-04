@@ -7,6 +7,49 @@ import { Eyebrow } from "@/components/site/Primitives";
 import { PRICING_CATEGORIES, PRICING_SERVICES, PRICING_FAQS } from "@/config/pricing";
 import { SITE } from "@/config/site";
 
+// --- Comparison tables (retainer + discovery tiers) ---
+const RETAINER_COMPARE = {
+  columns: [
+    { id: "cloud-operations-optimization", highlight: "Best for steady cloud ops" },
+    { id: "ai-operations-improvement", highlight: "Best for live AI systems" },
+    { id: "engineering-advisory-retainer", highlight: "Best for leadership guidance" },
+    { id: "product-engineering-retainer", highlight: "Best for ongoing builds" },
+  ],
+  rows: [
+    { label: "Billing", values: { "cloud-operations-optimization": "$3,500 / month", "ai-operations-improvement": "$4,500 / month", "engineering-advisory-retainer": "$4,500 / month", "product-engineering-retainer": "$9,500 / month" } },
+    { label: "Primary focus", values: { "cloud-operations-optimization": "Reliability, cost, security", "ai-operations-improvement": "Quality, safety, governance", "engineering-advisory-retainer": "Architecture + leadership", "product-engineering-retainer": "Shipping product work" } },
+    { label: "Reserved engineering", values: { "cloud-operations-optimization": false, "ai-operations-improvement": false, "engineering-advisory-retainer": false, "product-engineering-retainer": true } },
+    { label: "Recurring reviews", values: { "cloud-operations-optimization": "Monthly", "ai-operations-improvement": "Monthly + ad-hoc", "engineering-advisory-retainer": "Working sessions", "product-engineering-retainer": "Sprint cadence" } },
+    { label: "Written recommendations", values: { "cloud-operations-optimization": true, "ai-operations-improvement": true, "engineering-advisory-retainer": true, "product-engineering-retainer": true } },
+    { label: "Delivery capacity included", values: { "cloud-operations-optimization": "Guidance + small fixes", "ai-operations-improvement": "Tuning + eval work", "engineering-advisory-retainer": "Advisory only", "product-engineering-retainer": "Full delivery capacity" } },
+    { label: "Best for teams that…", values: { "cloud-operations-optimization": "Want predictable cloud ops", "ai-operations-improvement": "Run AI in production", "engineering-advisory-retainer": "Need senior architecture guidance", "product-engineering-retainer": "Need ongoing engineering output" } },
+  ],
+};
+
+const DISCOVERY_COMPARE = {
+  columns: [
+    { id: "technology-strategy-session", highlight: "Shortest engagement" },
+    { id: "product-discovery-workshop", highlight: "Best for a new product" },
+    { id: "technical-architecture-blueprint", highlight: "Best for architecture" },
+    { id: "ai-readiness-assessment", highlight: "Best for AI opportunity" },
+    { id: "cloud-architecture-assessment", highlight: "Best for cloud estate" },
+  ],
+  rows: [
+    { label: "Price", values: { "technology-strategy-session": "$495", "product-discovery-workshop": "$2,500", "technical-architecture-blueprint": "$4,500", "ai-readiness-assessment": "$4,500", "cloud-architecture-assessment": "$5,500" } },
+    { label: "Format", values: { "technology-strategy-session": "90-minute session", "product-discovery-workshop": "Facilitated workshop", "technical-architecture-blueprint": "Documented engagement", "ai-readiness-assessment": "Structured assessment", "cloud-architecture-assessment": "Structured assessment" } },
+    { label: "Deliverable", values: { "technology-strategy-session": "Recommendations summary", "product-discovery-workshop": "Scope + roadmap", "technical-architecture-blueprint": "Architecture document", "ai-readiness-assessment": "Opportunity map + plan", "cloud-architecture-assessment": "Assessment + roadmap" } },
+    { label: "Includes architecture work", values: { "technology-strategy-session": false, "product-discovery-workshop": "High-level", "technical-architecture-blueprint": true, "ai-readiness-assessment": "High-level", "cloud-architecture-assessment": true } },
+    { label: "Includes implementation plan", values: { "technology-strategy-session": "Next-step summary", "product-discovery-workshop": true, "technical-architecture-blueprint": true, "ai-readiness-assessment": true, "cloud-architecture-assessment": true } },
+    { label: "Best for teams that…", values: { "technology-strategy-session": "Want fast expert input", "product-discovery-workshop": "Are defining a new product", "technical-architecture-blueprint": "Need a design to build against", "ai-readiness-assessment": "Want to know where AI fits", "cloud-architecture-assessment": "Want to modernize cloud" } },
+  ],
+};
+
+const Cell = ({ value }) => {
+  if (value === true) return <span className="pcompare__yes" aria-label="Included">Included</span>;
+  if (value === false) return <span className="pcompare__no" aria-label="Not included">—</span>;
+  return <span>{value}</span>;
+};
+
 const BillingBadge = ({ billing, starting }) => {
   if (billing === "monthly") return <span className="pcard__billing pcard__billing--monthly" data-testid="pcard-billing">per month</span>;
   if (billing === "custom") return <span className="pcard__billing pcard__billing--custom" data-testid="pcard-billing">flexible</span>;
@@ -232,6 +275,135 @@ export default function PricingPage() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* ---------- Pricing Comparison ---------- */}
+      <section className="section" aria-labelledby="pricing-compare-heading" id="compare">
+        <div className="container">
+          <div className="section-head">
+            <Eyebrow>SIDE-BY-SIDE COMPARISON</Eyebrow>
+            <h2 id="pricing-compare-heading" className="section-title section-title--lg">
+              Compare retainer and discovery tiers.
+            </h2>
+            <p className="section-sub">
+              Quick side-by-side comparison to help you pick the right starting point. All
+              engagements can be adjusted, combined, or scoped as a milestone within a
+              larger program.
+            </p>
+          </div>
+
+          {/* Retainer plans */}
+          <div className="pcompare" data-testid="pricing-compare-retainers">
+            <div className="pcompare__head">
+              <Eyebrow>MONTHLY RETAINER PLANS</Eyebrow>
+              <h3 className="pcompare__title">Ongoing engagements, billed monthly.</h3>
+            </div>
+            <div className="pcompare__scroll">
+              <table className="pcompare__table" aria-label="Retainer plans comparison">
+                <thead>
+                  <tr>
+                    <th scope="col" className="pcompare__rowhead" aria-label="Feature"></th>
+                    {RETAINER_COMPARE.columns.map((c) => {
+                      const svc = PRICING_SERVICES.find((s) => s.id === c.id);
+                      return (
+                        <th key={c.id} scope="col" className="pcompare__colhead" data-testid={`compare-retainer-col-${c.id}`}>
+                          <span className="pcompare__pill">{c.highlight}</span>
+                          <span className="pcompare__colname">{svc?.name}</span>
+                          <span className="pcompare__colprice">{svc?.priceLabel}<small>/month</small></span>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {RETAINER_COMPARE.rows.map((row) => (
+                    <tr key={row.label}>
+                      <th scope="row" className="pcompare__rowhead">{row.label}</th>
+                      {RETAINER_COMPARE.columns.map((c) => (
+                        <td key={c.id} data-testid={`compare-retainer-${c.id}-${row.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
+                          <Cell value={row.values[c.id]} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                  <tr>
+                    <th scope="row" className="pcompare__rowhead">&nbsp;</th>
+                    {RETAINER_COMPARE.columns.map((c) => {
+                      const svc = PRICING_SERVICES.find((s) => s.id === c.id);
+                      return (
+                        <td key={c.id}>
+                          <Link
+                            to={`/contact?interest=${encodeURIComponent(svc?.name || "")}`}
+                            className="btn btn-primary btn-pill btn-sm pcompare__cta"
+                            data-testid={`compare-retainer-${c.id}-cta`}
+                          >
+                            Request <ArrowRight aria-hidden="true" />
+                          </Link>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Discovery plans */}
+          <div className="pcompare" data-testid="pricing-compare-discovery">
+            <div className="pcompare__head">
+              <Eyebrow>DISCOVERY & ASSESSMENT PLANS</Eyebrow>
+              <h3 className="pcompare__title">One-time starting engagements.</h3>
+            </div>
+            <div className="pcompare__scroll">
+              <table className="pcompare__table" aria-label="Discovery plans comparison">
+                <thead>
+                  <tr>
+                    <th scope="col" className="pcompare__rowhead" aria-label="Feature"></th>
+                    {DISCOVERY_COMPARE.columns.map((c) => {
+                      const svc = PRICING_SERVICES.find((s) => s.id === c.id);
+                      return (
+                        <th key={c.id} scope="col" className="pcompare__colhead" data-testid={`compare-discovery-col-${c.id}`}>
+                          <span className="pcompare__pill">{c.highlight}</span>
+                          <span className="pcompare__colname">{svc?.name}</span>
+                          <span className="pcompare__colprice">{svc?.priceLabel}</span>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {DISCOVERY_COMPARE.rows.map((row) => (
+                    <tr key={row.label}>
+                      <th scope="row" className="pcompare__rowhead">{row.label}</th>
+                      {DISCOVERY_COMPARE.columns.map((c) => (
+                        <td key={c.id} data-testid={`compare-discovery-${c.id}-${row.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
+                          <Cell value={row.values[c.id]} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                  <tr>
+                    <th scope="row" className="pcompare__rowhead">&nbsp;</th>
+                    {DISCOVERY_COMPARE.columns.map((c) => {
+                      const svc = PRICING_SERVICES.find((s) => s.id === c.id);
+                      return (
+                        <td key={c.id}>
+                          <Link
+                            to={`/contact?interest=${encodeURIComponent(svc?.name || "")}`}
+                            className="btn btn-primary btn-pill btn-sm pcompare__cta"
+                            data-testid={`compare-discovery-${c.id}-cta`}
+                          >
+                            Request <ArrowRight aria-hidden="true" />
+                          </Link>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
