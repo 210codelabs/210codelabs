@@ -1,26 +1,34 @@
 [
   {
-    "content": "Build backend /app/backend/support.py — JWT auth for clients, tickets + comments CRUD, request-access flow, admin endpoints",
+    "content": "Backend: add Emergent storage upload/download + attach to support tickets & comments",
     "status": "completed"
   },
   {
-    "content": "Wire support router into server.py and add Mongo indexes",
+    "content": "Backend: email notifications on ticket create / client reply / staff reply / status change",
     "status": "completed"
   },
   {
-    "content": "Build /support client portal (login + request access + dashboard + ticket detail)",
+    "content": "Backend: /api/cron/support-auto-close endpoint + entry in crons.yml",
     "status": "completed"
   },
   {
-    "content": "Build /admin/support admin desk (ticket queue + reply + user provisioning + access-request approvals)",
+    "content": "Backend: /api/support/ai-assist endpoint using Emergent LLM key with category suggestion",
     "status": "completed"
   },
   {
-    "content": "Rename Header 'Let's Build' → 'Client Support' opening /support in new tab; add Support Desk subitem in AdminShell nav (new tab)",
+    "content": "Frontend client: drag-and-drop uploads in new-ticket + reply + thumbnails in thread",
     "status": "completed"
   },
   {
-    "content": "Add CSS; wire routes; esbuild compile check; screenshot verification",
+    "content": "Frontend client: floating AI assistant widget with FAQs + category suggestion",
+    "status": "completed"
+  },
+  {
+    "content": "Frontend admin: show attachments in admin ticket thread + download links",
+    "status": "completed"
+  },
+  {
+    "content": "CSS + compile + screenshot verification",
     "status": "completed"
   }
 ]

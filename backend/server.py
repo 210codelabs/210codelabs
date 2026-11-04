@@ -325,9 +325,18 @@ from clerk_auth import require_superadmin, require_admin as require_clerk_admin_
 app.include_router(build_badges_router(db, require_superadmin))
 
 # Customer Support — client JWT portal + Clerk-protected admin desk
-from support import build_router as build_support_router, seed_indexes as seed_support_indexes  # noqa: E402
+from support import build_router as build_support_router, seed_indexes as seed_support_indexes, run_auto_close as run_support_auto_close  # noqa: E402
 
 app.include_router(build_support_router(db, require_clerk_admin_user))
+
+
+@app.post("/api/cron/support-auto-close")
+async def support_auto_close_cron():
+    try:
+        return await run_support_auto_close(db)
+    except Exception as exc:
+        logger.exception("Support auto-close failed")
+        return {"ok": False, "error": str(exc)}
 
 
 app.add_middleware(

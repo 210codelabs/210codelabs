@@ -28,3 +28,10 @@ crons:
     endpoint: "{{BASE_URL}}/api/cron/booking-reminders"
     method: POST
     enabled: true
+  - name: support-auto-close
+    description: "Closes resolved support tickets with no activity for 7+ days"
+    cron: "15 3 * * *"
+    timezone: "America/Chicago"
+    endpoint: "{{BASE_URL}}/api/cron/support-auto-close"
+    method: POST
+    enabled: true

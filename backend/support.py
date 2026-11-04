@@ -24,8 +24,14 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Literal, Optional
 
 import bcrypt
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from support_notify import (
+    ALLOWED_MIME, MAX_ATTACHMENTS, MAX_UPLOAD_BYTES, get_file, init_storage_safe,
+    make_object_path, put_file, notify_new_ticket, notify_comment, notify_status_change,
+    run_assistant, fire_and_forget,
+)
 
 logger = logging.getLogger("210codelabs.support")
 
@@ -67,10 +73,21 @@ class CreateTicketIn(BaseModel):
     category: Literal["general", "bug", "feature-request", "billing", "security", "integration"] = "general"
     priority: Literal["low", "medium", "high", "urgent"] = "medium"
     description: str = Field(..., min_length=10, max_length=8000)
+    attachment_ids: List[str] = Field(default_factory=list, max_length=MAX_ATTACHMENTS)
 
 
 class CommentIn(BaseModel):
     body: str = Field(..., min_length=1, max_length=8000)
+    attachment_ids: List[str] = Field(default_factory=list, max_length=MAX_ATTACHMENTS)
+
+
+class AssistantMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=4000)
+
+
+class AssistantIn(BaseModel):
+    messages: List[AssistantMessage] = Field(..., min_length=1, max_length=20)
 
 
 class StaffTicketUpdate(BaseModel):
@@ -188,6 +205,8 @@ def build_router(db, require_admin):
     async def create_ticket(body: CreateTicketIn, user: dict = Depends(require_client)):
         tid = str(uuid.uuid4())
         now = now_iso()
+        # Validate + take ownership of any staged attachments
+        attachments = await _consume_staged_attachments(body.attachment_ids, user["id"], tid)
         doc = {
             "id": tid,
             "user_id": user["id"],
@@ -205,7 +224,7 @@ def build_router(db, require_admin):
             "assignee": None,
         }
         await db.support_tickets.insert_one(doc)
-        # seed first comment with the description
+        # seed first comment with the description + attachments
         await db.support_comments.insert_one({
             "id": str(uuid.uuid4()),
             "ticket_id": tid,
@@ -213,9 +232,12 @@ def build_router(db, require_admin):
             "author_email": user["email"],
             "author_type": "client",
             "body": body.description,
+            "attachments": attachments,
             "created_at": now,
         })
-        return await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fresh = await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fire_and_forget(notify_new_ticket(fresh, body.description))
+        return fresh
 
     @api.get("/tickets/{tid}")
     async def get_ticket(tid: str, user: dict = Depends(require_client)):
@@ -233,6 +255,7 @@ def build_router(db, require_admin):
         if t.get("status") == "closed":
             raise HTTPException(status_code=400, detail="This ticket is closed. Reopen it first.")
         now = now_iso()
+        attachments = await _consume_staged_attachments(body.attachment_ids, user["id"], tid)
         c = {
             "id": str(uuid.uuid4()),
             "ticket_id": tid,
@@ -240,6 +263,7 @@ def build_router(db, require_admin):
             "author_email": user["email"],
             "author_type": "client",
             "body": body.body.strip(),
+            "attachments": attachments,
             "created_at": now,
         }
         await db.support_comments.insert_one(c)
@@ -247,28 +271,37 @@ def build_router(db, require_admin):
         if t.get("status") == "waiting-on-customer":
             updates["status"] = "in-progress"
         await db.support_tickets.update_one({"id": tid}, {"$set": updates})
-        return await db.support_comments.find_one({"id": c["id"]}, {"_id": 0})
+        fresh_ticket = await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fresh_comment = await db.support_comments.find_one({"id": c["id"]}, {"_id": 0})
+        fire_and_forget(notify_comment(fresh_ticket, fresh_comment))
+        return fresh_comment
 
     @api.post("/tickets/{tid}/resolve")
     async def mark_resolved(tid: str, user: dict = Depends(require_client)):
         t = await db.support_tickets.find_one({"id": tid, "user_id": user["id"]})
         if not t:
             raise HTTPException(status_code=404, detail="Ticket not found")
+        previous = t.get("status")
         await db.support_tickets.update_one(
             {"id": tid}, {"$set": {"status": "resolved", "updated_at": now_iso()}}
         )
-        return await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fresh = await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fire_and_forget(notify_status_change(fresh, previous))
+        return fresh
 
     @api.post("/tickets/{tid}/close")
     async def close_ticket(tid: str, user: dict = Depends(require_client)):
         t = await db.support_tickets.find_one({"id": tid, "user_id": user["id"]})
         if not t:
             raise HTTPException(status_code=404, detail="Ticket not found")
+        previous = t.get("status")
         now = now_iso()
         await db.support_tickets.update_one(
             {"id": tid}, {"$set": {"status": "closed", "closed_at": now, "closed_by": "client", "updated_at": now}}
         )
-        return await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fresh = await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fire_and_forget(notify_status_change(fresh, previous))
+        return fresh
 
     @api.post("/tickets/{tid}/reopen")
     async def reopen(tid: str, user: dict = Depends(require_client)):
@@ -286,10 +319,110 @@ def build_router(db, require_admin):
                     raise HTTPException(status_code=400, detail="Reopen window has elapsed. Please file a new ticket.")
             except ValueError:
                 pass
+        previous = t.get("status")
         await db.support_tickets.update_one(
             {"id": tid}, {"$set": {"status": "open", "closed_at": None, "closed_by": None, "updated_at": now_iso()}}
         )
-        return await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fresh = await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fire_and_forget(notify_status_change(fresh, previous))
+        return fresh
+
+    # ---------- File attachments ----------
+    async def _consume_staged_attachments(ids: list, user_id: str, ticket_id: str) -> list:
+        """Mark staged uploads as attached to a ticket; returns public attachment records."""
+        if not ids:
+            return []
+        if len(ids) > MAX_ATTACHMENTS:
+            raise HTTPException(status_code=400, detail=f"Up to {MAX_ATTACHMENTS} attachments allowed")
+        atts = []
+        async for f in db.support_files.find({"id": {"$in": ids}, "owner_id": user_id}):
+            if f.get("ticket_id") and f.get("ticket_id") != ticket_id:
+                continue
+            atts.append({
+                "id": f["id"], "filename": f["filename"], "content_type": f["content_type"], "size": f["size"],
+            })
+        found_ids = {a["id"] for a in atts}
+        missing = [i for i in ids if i not in found_ids]
+        if missing:
+            raise HTTPException(status_code=400, detail="Some attachments could not be found or expired. Please re-upload.")
+        await db.support_files.update_many(
+            {"id": {"$in": list(found_ids)}, "owner_id": user_id},
+            {"$set": {"ticket_id": ticket_id}},
+        )
+        return atts
+
+    @api.post("/uploads", status_code=201)
+    async def upload_file(file: UploadFile = File(...), user: dict = Depends(require_client)):
+        content_type = (file.content_type or "application/octet-stream").split(";")[0].strip()
+        if content_type not in ALLOWED_MIME:
+            raise HTTPException(status_code=400, detail="Unsupported file type. Allowed: PNG, JPG, GIF, WEBP, PDF, TXT, JSON, CSV.")
+        data = await file.read()
+        if len(data) == 0:
+            raise HTTPException(status_code=400, detail="Empty file")
+        if len(data) > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=400, detail=f"File too large (max {MAX_UPLOAD_BYTES // (1024*1024)} MB)")
+        ext = ALLOWED_MIME[content_type]
+        path = make_object_path("staged", ext)
+        try:
+            result = put_file(path, data, content_type)
+        except Exception as exc:
+            logger.exception("Upload storage put failed")
+            raise HTTPException(status_code=502, detail="Upload failed. Please try again.")
+        fid = str(uuid.uuid4())
+        safe_name = (file.filename or f"file.{ext}").strip()[:200]
+        doc = {
+            "id": fid,
+            "owner_id": user["id"],
+            "owner_email": user["email"],
+            "ticket_id": None,
+            "storage_path": result.get("path", path),
+            "filename": safe_name,
+            "content_type": content_type,
+            "size": result.get("size", len(data)),
+            "is_deleted": False,
+            "created_at": now_iso(),
+        }
+        await db.support_files.insert_one(doc)
+        return {"id": fid, "filename": safe_name, "content_type": content_type, "size": doc["size"]}
+
+    @api.get("/files/{file_id}")
+    async def download_my_file(
+        file_id: str,
+        authorization: Optional[str] = Header(default=None),
+        auth: Optional[str] = Query(default=None),
+    ):
+        # Allow ?auth=token for img src tags (no header available).
+        header = authorization or (f"Bearer {auth}" if auth else None)
+        if not header or not header.lower().startswith("bearer "):
+            raise HTTPException(status_code=401, detail="Not signed in")
+        token = header.split(" ", 1)[1].strip()
+        sess = await db.support_sessions.find_one({"token": token}, {"_id": 0})
+        if not sess:
+            raise HTTPException(status_code=401, detail="Session expired")
+        rec = await db.support_files.find_one({"id": file_id, "owner_id": sess["user_id"], "is_deleted": False})
+        if not rec:
+            raise HTTPException(status_code=404, detail="File not found")
+        try:
+            data, ct = get_file(rec["storage_path"])
+        except Exception:
+            logger.exception("Download storage get failed path=%s", rec.get("storage_path"))
+            raise HTTPException(status_code=502, detail="Could not load file")
+        return Response(content=data, media_type=rec.get("content_type") or ct, headers={
+            "Content-Disposition": f'inline; filename="{rec["filename"]}"',
+            "Cache-Control": "private, max-age=300",
+        })
+
+    # ---------- AI assistant ----------
+    @api.post("/ai-assist")
+    async def ai_assist(body: AssistantIn, user: dict = Depends(require_client)):
+        try:
+            result = await run_assistant(session_id=f"support-{user['id']}", messages=[m.model_dump() for m in body.messages])
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc))
+        except Exception as exc:
+            logger.exception("AI assist failed")
+            raise HTTPException(status_code=502, detail="Assistant is unavailable. Please try again or open a ticket.")
+        return result
 
     # ============== ADMIN endpoints ==============
     @admin.get("/overview")
@@ -353,13 +486,17 @@ def build_router(db, require_admin):
         if t.get("status") in ("open", "resolved"):
             updates["status"] = "waiting-on-customer"
         await db.support_tickets.update_one({"id": tid}, {"$set": updates})
-        return await db.support_comments.find_one({"id": c["id"]}, {"_id": 0})
+        fresh_ticket = await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fresh_comment = await db.support_comments.find_one({"id": c["id"]}, {"_id": 0})
+        fire_and_forget(notify_comment(fresh_ticket, fresh_comment))
+        return fresh_comment
 
     @admin.patch("/tickets/{tid}")
     async def admin_update_ticket(tid: str, body: StaffTicketUpdate, _: dict = Depends(require_admin)):
         t = await db.support_tickets.find_one({"id": tid})
         if not t:
             raise HTTPException(status_code=404, detail="Ticket not found")
+        previous = t.get("status")
         updates = {"updated_at": now_iso()}
         if body.status: updates["status"] = body.status
         if body.priority: updates["priority"] = body.priority
@@ -369,7 +506,25 @@ def build_router(db, require_admin):
         elif t.get("status") == "closed" and body.status and body.status != "closed":
             updates["closed_at"] = None; updates["closed_by"] = None
         await db.support_tickets.update_one({"id": tid}, {"$set": updates})
-        return await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        fresh = await db.support_tickets.find_one({"id": tid}, {"_id": 0})
+        if body.status and body.status != previous:
+            fire_and_forget(notify_status_change(fresh, previous))
+        return fresh
+
+    @admin.get("/files/{file_id}")
+    async def admin_download_file(file_id: str, _: dict = Depends(require_admin)):
+        rec = await db.support_files.find_one({"id": file_id, "is_deleted": False})
+        if not rec:
+            raise HTTPException(status_code=404, detail="File not found")
+        try:
+            data, ct = get_file(rec["storage_path"])
+        except Exception:
+            logger.exception("Admin download storage get failed path=%s", rec.get("storage_path"))
+            raise HTTPException(status_code=502, detail="Could not load file")
+        return Response(content=data, media_type=rec.get("content_type") or ct, headers={
+            "Content-Disposition": f'inline; filename="{rec["filename"]}"',
+            "Cache-Control": "private, max-age=300",
+        })
 
     # ----- users
     @admin.get("/users")
@@ -489,3 +644,31 @@ async def seed_indexes(db) -> None:
     await db.support_comments.create_index("ticket_id")
     await db.support_access_requests.create_index("id", unique=True)
     await db.support_access_requests.create_index([("status", 1), ("created_at", -1)])
+    await db.support_files.create_index("id", unique=True)
+    await db.support_files.create_index("owner_id")
+    await db.support_files.create_index([("ticket_id", 1), ("created_at", -1)])
+    init_storage_safe()
+
+
+async def run_auto_close(db) -> dict:
+    """Close any resolved ticket whose last activity is older than AUTO_CLOSE_DAYS."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=AUTO_CLOSE_DAYS)).isoformat()
+    cursor = db.support_tickets.find(
+        {"status": "resolved", "updated_at": {"$lt": cutoff}},
+        {"_id": 0},
+    )
+    closed = 0
+    async for t in cursor:
+        now = now_iso()
+        await db.support_tickets.update_one(
+            {"id": t["id"]},
+            {"$set": {"status": "closed", "closed_at": now, "closed_by": "auto", "updated_at": now}},
+        )
+        fresh = await db.support_tickets.find_one({"id": t["id"]}, {"_id": 0})
+        try:
+            await notify_status_change(fresh, "resolved")
+        except Exception:
+            logger.exception("Auto-close notification failed for ticket %s", t["id"])
+        closed += 1
+    logger.info("Support auto-close ran: closed=%d cutoff=%s", closed, cutoff)
+    return {"closed": closed, "cutoff": cutoff}

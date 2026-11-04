@@ -4,6 +4,7 @@ import {
   Mail, MessageSquare, Plus, RefreshCw, Send, Tag, Trash2, UserCircle2, UserPlus,
 } from "lucide-react";
 import { useAdminApi } from "@/hooks/useAdminApi";
+import { useAuth } from "@clerk/react";
 import { useSeo } from "@/hooks/useSeo";
 
 const STATUS_OPTIONS = ["open", "in-progress", "waiting-on-customer", "resolved", "closed"];
@@ -27,6 +28,65 @@ const rel = (d) => {
 function TicketStatus({ status }) {
   const s = STATUS_LABEL[status] || { label: status, cls: "status--open" };
   return <span className={`status ${s.cls}`}>{s.label}</span>;
+}
+
+function AdminAttachmentPreviews({ attachments }) {
+  const { getToken } = useAuth();
+  const [urls, setUrls] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    const base = `${process.env.REACT_APP_BACKEND_URL || ""}/api`;
+    const blobs = [];
+    (async () => {
+      const token = await getToken();
+      const next = {};
+      await Promise.all((attachments || []).map(async (a) => {
+        try {
+          const res = await fetch(`${base}/admin/support/files/${a.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) return;
+          const b = await res.blob();
+          const url = URL.createObjectURL(b);
+          blobs.push(url);
+          next[a.id] = url;
+        } catch { /* ignore */ }
+      }));
+      if (!cancelled) setUrls(next);
+    })();
+    return () => { cancelled = true; blobs.forEach((u) => URL.revokeObjectURL(u)); };
+  }, [attachments, getToken]);
+
+  if (!attachments || attachments.length === 0) return null;
+  const fmtBytes = (n) => {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  };
+  return (
+    <ul className="attach-preview">
+      {attachments.map((a) => {
+        const isImage = /^image\//.test(a.content_type);
+        const url = urls[a.id];
+        if (isImage && url) {
+          return (
+            <li key={a.id} className="attach-preview__item is-image">
+              <a href={url} download={a.filename}><img src={url} alt={a.filename} loading="lazy" /></a>
+            </li>
+          );
+        }
+        return (
+          <li key={a.id} className="attach-preview__item is-file">
+            <a href={url || "#"} download={a.filename} className="attach-preview__file">
+              <span>{a.filename}</span>
+              <span className="attach-preview__meta">{fmtBytes(a.size)}</span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 /* ---------- Ticket detail panel (admin) ---------- */
@@ -113,6 +173,7 @@ function AdminTicketPanel({ id, onBack, onChanged }) {
                 <span className="support-msg__time">{rel(c.created_at)} · {fmt(c.created_at)}</span>
               </div>
               <div className="support-msg__body">{c.body}</div>
+              <AdminAttachmentPreviews attachments={c.attachments} />
             </div>
           ))}
         </div>

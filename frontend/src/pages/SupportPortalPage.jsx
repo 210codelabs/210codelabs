@@ -7,6 +7,8 @@ import {
 import { useSeo } from "@/hooks/useSeo";
 import { useSupportApi } from "@/hooks/useSupportApi";
 import { getSupportSession, setSupportSession } from "@/hooks/useSupportApi";
+import { AttachmentPicker, AttachmentPreviews } from "@/components/support/Attachments";
+import { SupportAssistant } from "@/components/support/SupportAssistant";
 import { Logo } from "@/components/site/Logo";
 
 const CATEGORIES = [
@@ -198,16 +200,20 @@ function TicketStatus({ status }) {
   return <span className={`status ${s.cls}`} data-testid={`ticket-status-${status}`}>{s.label}</span>;
 }
 
-function NewTicketPanel({ onCreated, onCancel }) {
+function NewTicketPanel({ onCreated, onCancel, initialCategory }) {
   const api = useSupportApi();
-  const [form, setForm] = useState({ subject: "", category: "general", priority: "medium", description: "" });
+  const [form, setForm] = useState({ subject: "", category: initialCategory || "general", priority: "medium", description: "" });
+  const [attachments, setAttachments] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   const submit = async (e) => {
     e.preventDefault(); setBusy(true); setError("");
     try {
-      const t = await api("/support/tickets", { method: "POST", body: form });
+      const t = await api("/support/tickets", { method: "POST", body: {
+        ...form,
+        attachment_ids: attachments.map((a) => a.id),
+      }});
       onCreated(t);
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
@@ -251,6 +257,7 @@ function NewTicketPanel({ onCreated, onCancel }) {
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             data-testid="support-new-description" />
         </label>
+        <AttachmentPicker attachments={attachments} setAttachments={setAttachments} disabled={busy} testIdBase="support-new-attach" />
         <button type="submit" className="btn btn-primary btn-pill" disabled={busy} data-testid="support-new-submit">
           {busy ? <Loader2 className="spin" aria-hidden="true" /> : <Send aria-hidden="true" />} Submit ticket
         </button>
@@ -263,6 +270,7 @@ function TicketDetailPanel({ id, onBack, onChanged }) {
   const api = useSupportApi();
   const [data, setData] = useState(null);
   const [reply, setReply] = useState("");
+  const [replyAttachments, setReplyAttachments] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -285,8 +293,10 @@ function TicketDetailPanel({ id, onBack, onChanged }) {
     e.preventDefault(); if (!reply.trim()) return;
     setBusy(true); setError("");
     try {
-      await api(`/support/tickets/${id}/comments`, { method: "POST", body: { body: reply } });
-      setReply(""); await load(); onChanged();
+      await api(`/support/tickets/${id}/comments`, { method: "POST", body: {
+        body: reply, attachment_ids: replyAttachments.map((a) => a.id),
+      }});
+      setReply(""); setReplyAttachments([]); await load(); onChanged();
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
 
@@ -323,6 +333,7 @@ function TicketDetailPanel({ id, onBack, onChanged }) {
               <span className="support-msg__time">{relTime(c.created_at)} · {fmt(c.created_at)}</span>
             </div>
             <div className="support-msg__body">{c.body}</div>
+            <AttachmentPreviews attachments={c.attachments} />
           </div>
         ))}
       </div>
@@ -331,6 +342,7 @@ function TicketDetailPanel({ id, onBack, onChanged }) {
         <form onSubmit={submitReply} className="support-reply" data-testid="support-reply-form">
           <textarea placeholder="Add an update or reply…" rows={3} required
             value={reply} onChange={(e) => setReply(e.target.value)} data-testid="support-reply-input" />
+          <AttachmentPicker attachments={replyAttachments} setAttachments={setReplyAttachments} disabled={busy} testIdBase="support-reply-attach" />
           <div className="support-reply__actions">
             <div className="support-reply__status">
               {resolved && <span className="support-hint">Marked resolved — add a reply if there's still an issue.</span>}
@@ -478,6 +490,7 @@ function DashboardPanel({ user, onSignOut }) {
 
         {view.mode === "new" && (
           <NewTicketPanel
+            initialCategory={view.initialCategory}
             onCreated={(t) => { load(); setView({ mode: "detail", id: t.id }); }}
             onCancel={() => setView({ mode: "list" })}
           />
@@ -491,6 +504,10 @@ function DashboardPanel({ user, onSignOut }) {
           />
         )}
       </main>
+
+      <SupportAssistant
+        onPickCategory={(cat) => setView({ mode: "new", initialCategory: cat })}
+      />
     </div>
   );
 }
