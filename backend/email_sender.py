@@ -1,7 +1,10 @@
-"""Managed email sender (Emergent Resend proxy) + guardrail gate.
+"""Transactional email sender.
 
-Only internal server-side templates may be sent; no caller may supply recipient,
-subject or body. Every send runs through _assert_safe_email.
+Sends via Resend directly when `RESEND_API_KEY` is configured (preferred),
+falling back to the legacy Emergent-managed email proxy if only
+`EMERGENT_EMAIL_KEY` is set. Every send runs through `_assert_safe_email`
+to enforce the guardrails (no credential-asking copy, no shortener links,
+no mismatched anchor text, no interactive form fields).
 """
 from __future__ import annotations
 
@@ -13,13 +16,26 @@ from html.parser import HTMLParser
 from urllib.parse import urlparse
 
 import httpx
+import resend
 
 logger = logging.getLogger("210codelabs.email")
 
+# ----- Legacy Emergent proxy (used only as a fallback) -----
 EMAIL_BASE_URL = "https://integrations.emergentagent.com"
 _EMAIL_KEY = os.environ.get("EMERGENT_EMAIL_KEY", "")
-_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", "210Codelabs")
-_REPLY_TO = os.environ.get("EMAIL_REPLY_TO", "info@210codelabs.com")
+
+# ----- Resend direct configuration -----
+_RESEND_KEY = os.environ.get("RESEND_API_KEY", "").strip()
+_RESEND_FROM_EMAIL = (os.environ.get("RESEND_FROM_EMAIL") or "").strip()
+_RESEND_FROM_NAME = (os.environ.get("RESEND_FROM_NAME") or os.environ.get("EMAIL_FROM_NAME") or "210Codelabs").strip()
+_RESEND_REPLY_TO = (os.environ.get("RESEND_REPLY_TO") or os.environ.get("EMAIL_REPLY_TO") or "").strip()
+
+# Shared defaults kept for the legacy path.
+_FROM_NAME = os.environ.get("EMAIL_FROM_NAME", _RESEND_FROM_NAME)
+_REPLY_TO = os.environ.get("EMAIL_REPLY_TO", _RESEND_REPLY_TO)
+
+if _RESEND_KEY:
+    resend.api_key = _RESEND_KEY
 
 _SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "goo.gl", "rebrand.ly")
 _CRED_ASK = (
@@ -97,13 +113,42 @@ def _assert_safe_email(subject: str, html: str) -> None:
 
 
 async def send_managed_email(*, to: str, subject: str, html: str) -> dict:
-    """Send a transactional email via the Emergent Resend proxy.
+    """Send a transactional email.
 
-    Raises ValueError (guardrail), RuntimeError (configuration), or httpx errors.
+    Prefers Resend (own account, verified domain) when `RESEND_API_KEY` is set;
+    falls back to the Emergent-managed proxy otherwise.
+
+    Raises:
+      ValueError: guardrail failure.
+      RuntimeError: no email provider configured.
     """
-    if not _EMAIL_KEY:
-        raise RuntimeError("Email is not configured (EMERGENT_EMAIL_KEY missing)")
     _assert_safe_email(subject, html)
+
+    if _RESEND_KEY and _RESEND_FROM_EMAIL:
+        from_header = f"{_RESEND_FROM_NAME} <{_RESEND_FROM_EMAIL}>" if _RESEND_FROM_NAME else _RESEND_FROM_EMAIL
+        params: dict = {
+            "from": from_header,
+            "to": [to],
+            "subject": subject,
+            "html": html,
+        }
+        if _RESEND_REPLY_TO:
+            params["reply_to"] = _RESEND_REPLY_TO
+        try:
+            result = await resend.Emails.send_async(params)
+        except Exception as exc:
+            err = getattr(exc, "message", None) or str(exc)
+            # Surface a sanitized result; callers already treat non-ok as a warning.
+            logger.warning("Resend send failed to=%s subject=%s err=%s", to, subject, err)
+            return {"ok": False, "provider": "resend", "error": err}
+        email_id = (result or {}).get("id")
+        return {"ok": True, "provider": "resend", "id": email_id}
+
+    # ----- Legacy Emergent-managed proxy fallback -----
+    if not _EMAIL_KEY:
+        raise RuntimeError(
+            "Email is not configured. Set RESEND_API_KEY (+ RESEND_FROM_EMAIL) or EMERGENT_EMAIL_KEY."
+        )
     payload = {"to": [to], "subject": subject, "html": html, "from_name": _FROM_NAME}
     if _REPLY_TO:
         payload["contact_email"] = _REPLY_TO
@@ -119,5 +164,5 @@ async def send_managed_email(*, to: str, subject: str, html: str) -> dict:
         except Exception:
             data = {"message": resp.text[:200]}
         logger.warning("Email send failed %s: %s", resp.status_code, data)
-        return {"ok": False, "status": resp.status_code, **data}
-    return {"ok": True, **resp.json()}
+        return {"ok": False, "provider": "emergent", "status": resp.status_code, **data}
+    return {"ok": True, "provider": "emergent", **resp.json()}
