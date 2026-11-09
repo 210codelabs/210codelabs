@@ -1446,6 +1446,28 @@ a.inv-row:hover .inv-row__name { color: var(--cobalt); }
 
 /* Research */
 .research-brief { white-space: pre-wrap; font-family: var(--font-mono, "Source Code Pro"), monospace; font-size: 13px; line-height: 1.55; background: var(--ice); padding: 14px; border-radius: 10px; border: 1px solid var(--ice-border); }
+.leadhunter { display: flex; flex-direction: column; gap: 18px; }
+.leadhunter__header { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
+.leadhunter__header h1 { margin: 3px 0 6px; font-family: var(--font-display); color: var(--navy); font-size: 1.8rem; }
+.leadhunter__header p { margin-bottom: 0; }
+.leadhunter__header .eyebrow { color: var(--cobalt); font-weight: 700; }
+.leadhunter__notice { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid #e8c878; border-radius: 8px; background: #fff9e8; color: #553b08; }
+.leadhunter__notice svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
+.leadhunter__notice p { margin: 0; font-size: 13.5px; line-height: 1.55; }
+.leadhunter__grid { display: grid; grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr); gap: 16px; align-items: start; }
+.leadhunter__reports { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; }
+.leadhunter__report { width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--ice-border); background: transparent; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; color: var(--navy); cursor: pointer; }
+.leadhunter__report > span:first-child { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.leadhunter__report small { color: var(--slate); }
+.leadhunter__detail { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--ice-border); }
+.leadhunter__detail h4 { margin: 0; }
+.leadhunter__detail .research-brief { max-height: 420px; overflow: auto; }
+.leadhunter__detail .panel__list a { overflow-wrap: anywhere; }
+.leadhunter__table-wrap { width: 100%; overflow-x: auto; }
+@media (max-width: 760px) {
+  .leadhunter__header { align-items: flex-start; flex-direction: column; }
+  .leadhunter__grid { grid-template-columns: minmax(0, 1fr); }
+}
 .integrations-list li { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--ice-border); border-radius: 10px; background: var(--ice); }
 .integrations-list li { position: relative; padding-left: 36px; }
 .integrations-list li svg { position: absolute; left: 12px; top: 12px; width: 18px; height: 18px; }

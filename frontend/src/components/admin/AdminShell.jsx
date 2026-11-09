@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Show, UserButton, useAuth, useUser } from "@clerk/react";
 import {
   LayoutDashboard, Users, Building2, Kanban, Target, Inbox, Calendar, CalendarCheck,
-  CheckSquare, Search, BarChart3, Workflow, Plug, Settings, Mail, FileText, LogIn, UserCog, Award, LifeBuoy, ExternalLink,
+  CheckSquare, Search, BarChart3, Workflow, Plug, Settings, Mail, FileText, LogIn, UserCog, Award, LifeBuoy, ExternalLink, Radar,
 } from "lucide-react";
 import { Logo } from "@/components/site/Logo";
 import { useAdminApi } from "@/hooks/useAdminApi";
@@ -21,6 +21,7 @@ const NAV = [
   { to: "/admin/appointments", label: "Appointments", icon: CalendarCheck, testId: "admin-nav-appointments" },
   { to: "/admin/tasks", label: "Tasks", icon: CheckSquare, testId: "admin-nav-tasks" },
   { to: "/admin/research", label: "Research", icon: Search, testId: "admin-nav-research" },
+  { to: "/admin/leadhunter", label: "LeadHunter AI", icon: Radar, testId: "admin-nav-leadhunter", newTab: true },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3, testId: "admin-nav-analytics" },
   { to: "/admin/automations", label: "Automations", icon: Workflow, testId: "admin-nav-automations" },
   { to: "/admin/integrations", label: "Integrations", icon: Plug, testId: "admin-nav-integrations" },
@@ -96,7 +97,7 @@ export default function AdminShell() {
                   <a
                     href={to}
                     target="_blank"
-                    rel="noopener"
+                    rel="noopener noreferrer"
                     className="adminx__link adminx__link--legacy"
                     data-testid={testId}
                   >

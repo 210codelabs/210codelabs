@@ -40,6 +40,7 @@ import AdminCalendarPage from "@/pages/admin/AdminCalendarPage";
 import AdminAppointmentsPage from "@/pages/admin/AdminAppointmentsPage";
 import AdminInboxPage from "@/pages/admin/AdminInboxPage";
 import AdminResearchPage from "@/pages/admin/AdminResearchPage";
+import AdminLeadHunterPage from "@/pages/admin/AdminLeadHunterPage";
 import AdminAnalyticsPage from "@/pages/admin/AdminAnalyticsPage";
 import AdminAutomationsPage from "@/pages/admin/AdminAutomationsPage";
 import AdminIntegrationsPage from "@/pages/admin/AdminIntegrationsPage";
@@ -100,6 +101,7 @@ function App() {
             <Route path="appointments" element={<AdminAppointmentsPage />} />
             <Route path="inbox" element={<AdminInboxPage />} />
             <Route path="research" element={<AdminResearchPage />} />
+            <Route path="leadhunter" element={<AdminLeadHunterPage />} />
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="automations" element={<AdminAutomationsPage />} />
             <Route path="integrations" element={<AdminIntegrationsPage />} />
