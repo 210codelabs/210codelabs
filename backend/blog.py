@@ -532,74 +532,26 @@ def build_router(db, require_admin) -> APIRouter:
         return Response(content=im["data"], media_type=im.get("mime", "image/webp"), headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
     def _base(request: Request) -> str:
-        return os.environ.get("PUBLIC_SITE_URL") or f"{request.headers.get('x-forwarded-proto', 'https')}://{request.headers.get('host')}"
+        from seo_sitemap import canonical_base
+        return canonical_base(request)
 
     @r.get("/sitemap.xml")
     async def sitemap(request: Request):
-        base = _base(request)
-        today = datetime.now(timezone.utc).date().isoformat()
-        # Static public routes with sensible priorities (home highest; legal lowest)
-        static_routes = [
-            ("/", "weekly", "1.0"),
-            ("/about", "monthly", "0.8"),
-            ("/capabilities", "monthly", "0.8"),
-            ("/work", "monthly", "0.7"),
-            ("/investors", "monthly", "0.6"),
-            ("/blog", "daily", "0.9"),
-            ("/contact", "monthly", "0.7"),
-            ("/book", "monthly", "0.8"),
-            # Static case studies
-            ("/work/intelligent-operations-platform", "monthly", "0.5"),
-            ("/work/next-gen-saas-platform", "monthly", "0.5"),
-            ("/work/enterprise-cloud-modernization", "monthly", "0.5"),
-            ("/work/decentralized-ecosystem", "monthly", "0.5"),
-            # Legal
-            ("/legal/privacy-policy", "yearly", "0.3"),
-            ("/legal/terms-of-use", "yearly", "0.3"),
-            ("/legal/cookie-policy", "yearly", "0.3"),
-            ("/legal/accessibility", "yearly", "0.3"),
-        ]
-        urls = [
-            f"<url><loc>{base}{p}</loc><lastmod>{today}</lastmod>"
-            f"<changefreq>{cf}</changefreq><priority>{pri}</priority></url>"
-            for p, cf, pri in static_routes
-        ]
+        from seo_sitemap import build_sitemap
         posts = await db.blog_posts.find(
-            {"status": "published"}, {"slug": 1, "updated_at": 1, "_id": 0}
-        ).to_list(5000)
-        urls += [
-            f"<url><loc>{base}/blog/{p['slug']}</loc><lastmod>{(p.get('updated_at') or today)[:10]}</lastmod>"
-            f"<changefreq>monthly</changefreq><priority>0.6</priority></url>"
-            for p in posts
-        ]
-        xml = (
-            '<?xml version="1.0" encoding="UTF-8"?>'
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
-            + "".join(urls)
-            + "</urlset>"
-        )
+            {"status": "published"},
+            {"slug": 1, "updated_at": 1, "published_at": 1, "cover_image_id": 1, "_id": 0},
+        ).sort("published_at", -1).to_list(5000)
         return Response(
-            xml,
-            media_type="application/xml",
-            headers={"Cache-Control": "public, max-age=3600"},
+            build_sitemap(_base(request), posts),
+            media_type="application/xml; charset=utf-8",
+            headers={"Cache-Control": "public, max-age=3600", "X-Robots-Tag": "noindex"},
         )
 
     @r.get("/robots.txt")
     async def robots_txt(request: Request):
-        base = _base(request)
-        body = (
-            "# 210Codelabs Corporation — crawler directives\n"
-            "User-agent: *\n"
-            "Allow: /\n"
-            "Disallow: /admin/\n"
-            "Disallow: /admin\n"
-            "Disallow: /sign-in\n"
-            "Disallow: /sign-up\n"
-            "Disallow: /book/manage/\n"
-            "Disallow: /api/\n"
-            f"\nSitemap: {base}/api/sitemap.xml\n"
-        )
-        return Response(body, media_type="text/plain", headers={"Cache-Control": "public, max-age=3600"})
+        from seo_sitemap import build_robots
+        return Response(build_robots(_base(request)), media_type="text/plain", headers={"Cache-Control": "public, max-age=3600"})
 
     @r.get("/blog/rss.xml")
     async def rss(request: Request):

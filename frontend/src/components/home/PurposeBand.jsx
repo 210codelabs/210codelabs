@@ -9,7 +9,7 @@ export const PurposeBand = ({ headingLevel = 2 }) => {
       <div className="purpose__veil" aria-hidden="true" />
       <div className="container container--wide purpose__inner">
         <div className="purpose__head reveal">
-          <p className="eyebrow eyebrow--light">{PURPOSE.eyebrow}</p>
+          <p className="eyebrow">{PURPOSE.eyebrow}</p>
           <H id="purpose-title" className="purpose__title">
             Transforming vision <br className="br-desktop" />into engineered reality.
           </H>

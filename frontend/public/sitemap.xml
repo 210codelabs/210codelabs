@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Root sitemap index for Google Search Console. The child sitemap is generated
+     live by the backend so new blog posts appear automatically. -->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://210codelabs.com/api/sitemap.xml</loc>
+  </sitemap>
+</sitemapindex>

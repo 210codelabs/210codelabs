@@ -2,14 +2,19 @@
 User-agent: *
 Allow: /
 
-# Private areas (admin workspace, legacy admin pages, auth, tokenized self-service)
-Disallow: /admin/
+# Private areas (admin workspace, auth, tokenised self-service)
 Disallow: /admin
 Disallow: /sign-in
 Disallow: /sign-up
 Disallow: /book/manage/
 
-# Backend-only (not meant for direct crawling)
+# Backend API is private, except public read-only data the pages render with
+Allow: /api/sitemap.xml
+Allow: /api/blog/posts
+Allow: /api/blog/images/
+Allow: /api/blog/rss.xml
+Allow: /api/badges/featured
+Allow: /api/badges/public/
 Disallow: /api/
 
-Sitemap: https://210codelabs.com/api/sitemap.xml
+Sitemap: https://210codelabs.com/sitemap.xml

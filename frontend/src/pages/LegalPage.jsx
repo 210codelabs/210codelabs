@@ -48,12 +48,12 @@ const CONTENT = {
       {
         h: "Current use of cookies",
         p: [
-          "This website does not install advertising or analytics cookies, and it does not show a cookie banner because no non-essential cookies are set by the site itself.",
+          "This website uses the Meta Pixel, which may set cookies or similar identifiers to measure visits and support advertising on Meta platforms. A first-party cookie also records the page through which you first arrived.",
           "The private administration area keeps its sign-in session in your browser’s session storage, which is cleared when you close the browser tab.",
           REVIEW,
         ],
       },
-      { h: "Third-party services", p: [REVIEW] },
+      { h: "Third-party services", p: ["Meta Platforms, Inc. receives page-view data through the Meta Pixel, and AdWave receives visit data through its advertising measurement script. See each provider’s own privacy and cookie policies for how it handles that data.", REVIEW] },
       { h: "Managing cookies", p: ["You can delete or block cookies through your browser settings.", REVIEW] },
       { h: "Changes to this policy", p: ["If non-essential cookies are introduced in the future, this policy will be updated and consent will be requested before they are set."] },
     ],

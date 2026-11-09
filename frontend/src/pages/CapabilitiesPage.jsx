@@ -3,21 +3,22 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useSeo } from "@/hooks/useSeo";
 import { CAPABILITIES, CASES } from "@/config/site";
+import { SERVICES } from "@/config/services";
 import { solutionsFor } from "@/config/solutions";
 import { PageHero } from "@/components/site/PageHero";
 import { CapIcon } from "@/components/site/Primitives";
 
 export default function CapabilitiesPage() {
   useSeo({
-    title: "Capabilities",
-    description: "AI Engineering, Cloud-Native Systems, SaaS Platforms, Consulting & Advisory, Mentoring & Enablement, and Web3 & Emerging Tech.",
+    title: "AI Consulting, Software & Cloud Engineering",
+    description: "Explore 210Codelabs services for AI engineering, intelligent automation, SaaS development, cloud modernization, technology advisory, team enablement, and Web3 projects.",
   });
   return (
     <div data-testid="capabilities-page">
       <PageHero
         eyebrow="CAPABILITIES"
-        title="Bring your ambition. We bring the engineering."
-        lead="Next-generation software systems, AI-powered products, and cloud-native platforms that turn bold ideas into real-world impact."
+        title="AI Consulting, Software & Cloud Engineering"
+        lead="Practical technology services to help businesses plan, build, and modernize AI applications, software platforms, and cloud systems."
         crumbs={[{ label: "Capabilities" }]}
       >
         <nav aria-label="Capabilities on this page" className="chip-nav">
@@ -39,7 +40,16 @@ export default function CapabilitiesPage() {
                   <div className="cap-row__body">
                     <h2 className="cap-row__title">{c.title}</h2>
                     <p className="cap-row__text">{c.text}</p>
-                    <p className="cap-row__soon">Detailed service information coming soon.</p>
+                    <p className="cap-row__text">{c.details}</p>
+                    <p className="cap-row__related">
+                      Service details: {Object.values(SERVICES)
+                        .filter((service) => service.contactInterest === c.title || (c.slug === "ai-engineering" && service.slug === "business-automation") || (c.slug === "cloud-native-systems" && service.slug === "legacy-modernization"))
+                        .map((service, index) => (
+                          <React.Fragment key={service.slug}>
+                            {index > 0 ? " · " : ""}<Link to={`/services/${service.slug}`}>{service.title}</Link>
+                          </React.Fragment>
+                        ))}
+                    </p>
                     {c.slug === "ai-engineering" && (
                       <p className="cap-row__related cap-row__proven">
                         Verified expertise: <Link to="/about#openai-credentials" data-testid="capability-ai-credentials-link">10+ OpenAI Professional Certifications</Link>

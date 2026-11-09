@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowRight, CalendarClock, Play } from "lucide-react";
 import { IMG } from "@/config/site";
 import { useScrollTo } from "@/hooks/useScrollTo";
@@ -27,15 +28,16 @@ export const Hero = () => {
 
       <div className="container hero__inner">
         <div className="hero__copy">
-          <p className="eyebrow hero__eyebrow anim-up" style={{ "--d": "0ms" }}>INNOVATION SYSTEMS</p>
+          <p className="eyebrow hero__eyebrow anim-up" style={{ "--d": "0ms" }}>AI CONSULTING · CUSTOM SOFTWARE · CLOUD ENGINEERING</p>
           <h1 id="hero-title" className="hero__title anim-up" style={{ "--d": "60ms" }}>
-            <span className="hero__title-l1">Let’s build</span>
-            <span className="hero__title-l2">what’s next.</span>
+            <span className="hero__title-l1">Turn Complex{" "}</span>
+            <span className="hero__title-l2">Business Challenges{" "}</span>
+            <span className="hero__title-l2">Into Intelligent Solutions.</span>
           </h1>
-          <p className="hero__subtitle anim-up" style={{ "--d": "120ms" }}>Bring your ambition. We bring the engineering.</p>
+          <p className="hero__subtitle anim-up" style={{ "--d": "120ms" }}>Let’s build what’s next.</p>
           <p className="hero__text anim-up" style={{ "--d": "170ms" }}>
-            210Codelabs Corporation designs and builds next-generation software systems, AI-powered products, and
-            cloud-native platforms that turn bold ideas into real-world impact.
+            210Codelabs helps businesses design, develop, and deploy AI-powered applications, intelligent automation,
+            enterprise software, and scalable cloud solutions.
           </p>
           <div className="hero__ctas anim-up" style={{ "--d": "220ms" }}>
             <a
@@ -44,7 +46,7 @@ export const Hero = () => {
               onClick={(e) => { e.preventDefault(); scrollTo("contact"); }}
               data-testid="hero-start-conversation-button"
             >
-              Start a Conversation <ArrowRight aria-hidden="true" />
+              Discuss Your Project <ArrowRight aria-hidden="true" />
             </a>
             <button
               type="button"
@@ -54,15 +56,13 @@ export const Hero = () => {
             >
               <CalendarClock aria-hidden="true" /> Schedule a Meeting
             </button>
-            <a
-              href="#work"
+            <Link
+              to="/capabilities"
               className="btn btn-secondary btn-pill btn-lg"
-              onClick={(e) => { e.preventDefault(); scrollTo("work"); }}
-              data-testid="hero-explore-work-button"
+              data-testid="hero-explore-solutions-button"
             >
-              Explore Our Work
-              <span className="play-circle" aria-hidden="true"><Play /></span>
-            </a>
+              Explore Our Solutions <ArrowRight aria-hidden="true" />
+            </Link>
           </div>
         </div>
 

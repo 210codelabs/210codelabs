@@ -22,10 +22,11 @@ export function useReveal() {
           },
           { rootMargin: "0px 0px -8% 0px", threshold: 0.05 }
         );
+    const watched = new WeakSet();
 
     const observe = (el) => {
-      if (!el || el.classList.contains("is-visible") || el.dataset.revealWatched === "1") return;
-      el.dataset.revealWatched = "1";
+      if (!el || el.classList.contains("is-visible") || watched.has(el)) return;
+      watched.add(el);
       if (noIO) el.classList.add("is-visible");
       else io.observe(el);
     };

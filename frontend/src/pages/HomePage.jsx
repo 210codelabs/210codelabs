@@ -9,6 +9,7 @@ import { CredentialsBand } from "@/components/credentials/Credentials";
 import { SolutionsStrip } from "@/components/solutions/SolutionsPortfolio";
 import { ContactSection } from "@/components/contact/ContactSection";
 import { HomeConcierge } from "@/components/home/HomeConcierge";
+import ResearchEntry from "@/components/research/ResearchEntry";
 
 const WEBSITE_LD = {
   "@context": "https://schema.org",
@@ -20,7 +21,12 @@ const WEBSITE_LD = {
 };
 
 export default function HomePage() {
-  useSeo({ image: "/assets/hero-san-antonio-1600.webp" });
+  useSeo({
+    title: "AI Consulting & Custom Software Development | 210Codelabs",
+    titleSuffix: "",
+    description: "210Codelabs delivers AI consulting, intelligent automation, custom SaaS development, and cloud engineering to help businesses innovate, modernize, and grow.",
+    image: "/assets/hero-san-antonio-1600.webp",
+  });
   useJsonLd("website-jsonld", WEBSITE_LD);
   return (
     <div className="home" data-testid="home-page">
@@ -28,6 +34,7 @@ export default function HomePage() {
       <PurposeBand />
       <SelectedWork />
       <SolutionsStrip />
+      <ResearchEntry />
       <EcosystemBand />
       <CredentialsBand />
       <FinalCta />

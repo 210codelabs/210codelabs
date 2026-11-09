@@ -57,6 +57,7 @@ function canonicalOfCurrent() {
 
 export function useSeo({
   title,
+  titleSuffix = SITE.name,
   description,
   noindex = false,
   image,
@@ -64,7 +65,7 @@ export function useSeo({
   canonical, // override canonical when needed; default is current path
 } = {}) {
   useEffect(() => {
-    const t = title ? `${title} | ${SITE.name}` : SITE.title;
+    const t = title ? `${title}${titleSuffix ? ` | ${titleSuffix}` : ""}` : SITE.title;
     const d = description || SITE.description;
     const ogType = type || "website";
     const img = absoluteUrl(image || DEFAULT_OG_IMAGE);
@@ -95,7 +96,7 @@ export function useSeo({
       const existing = document.head.querySelector('link[rel="canonical"]');
       if (existing && noindex) existing.remove();
     }
-  }, [title, description, noindex, image, type, canonical]);
+  }, [title, titleSuffix, description, noindex, image, type, canonical]);
 }
 
 /**

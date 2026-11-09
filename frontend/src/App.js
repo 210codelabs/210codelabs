@@ -6,6 +6,8 @@ import Layout from "@/components/site/Layout";
 import HomePage from "@/pages/HomePage";
 import AboutPage from "@/pages/AboutPage";
 import CapabilitiesPage from "@/pages/CapabilitiesPage";
+import AiResearchPage from "@/pages/AiResearchPage";
+import ServiceDetailPage from "@/pages/ServiceDetailPage";
 import PricingPage from "@/pages/PricingPage";
 import IndustriesPage from "@/pages/IndustriesPage";
 import IndustryDetailPage from "@/pages/IndustryDetailPage";
@@ -64,6 +66,8 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="capabilities" element={<CapabilitiesPage />} />
+            <Route path="ai-research" element={<AiResearchPage />} />
+            <Route path="services/:slug" element={<ServiceDetailPage />} />
             <Route path="pricing" element={<PricingPage />} />
             <Route path="industries" element={<IndustriesPage />} />
             <Route path="industries/:slug" element={<IndustryDetailPage />} />

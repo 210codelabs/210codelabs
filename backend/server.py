@@ -18,6 +18,7 @@ import uuid
 import hmac
 import secrets
 import logging
+from html import escape as html_escape
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -43,6 +44,12 @@ INTERESTS = [
     "Consulting & Advisory",
     "Mentoring & Enablement",
     "Web3 & Emerging Tech",
+    "Training Data Engineering",
+    "AI Model Evaluation",
+    "Agentic AI Testing",
+    "Human Feedback / Preference Data",
+    "Research Engineering",
+    "Technical Supplier Qualification",
     "Investor Relations",
     "Other",
 ]
@@ -171,6 +178,27 @@ async def submit_contact(payload: ContactIn, request: Request):
         await ingest_contact_message(db, doc)
     except Exception as e:
         logger.exception("CRM ingest failed: %s", e)
+    if payload.source_page == "AI_RESEARCH_PAGE" and CONTACT_EMAIL:
+        try:
+            from email_sender import send_managed_email
+            safe_message = html_escape(payload.message).replace("\n", "<br>")
+            email_html = (
+                f"<h2>New AI research inquiry</h2>"
+                f"<p><strong>Name:</strong> {html_escape(payload.name)}<br>"
+                f"<strong>Organization:</strong> {html_escape(payload.organization or 'Not provided')}<br>"
+                f"<strong>Email:</strong> {html_escape(payload.email)}<br>"
+                f"<strong>Interest:</strong> {html_escape(payload.interest)}</p>"
+                f"<p><strong>Inquiry details</strong></p><p>{safe_message}</p>"
+            )
+            result = await send_managed_email(
+                to=CONTACT_EMAIL,
+                subject=f"AI research inquiry: {payload.interest}",
+                html=email_html,
+            )
+            if not result.get("ok"):
+                logger.warning("AI research inquiry notification failed id=%s", doc["id"])
+        except Exception:
+            logger.exception("AI research inquiry notification failed id=%s", doc["id"])
     return ContactOut(ok=True, id=doc["id"])
 
 

@@ -48,7 +48,24 @@ export const API_BASE = `${BACKEND_URL}/api`;
 export const NAV = [
   { label: "Home", to: "/", section: "top" },
   { label: "About", to: "/about" },
-  { label: "Capabilities", to: "/capabilities", section: "capabilities" },
+  {
+    label: "Services",
+    to: "/capabilities",
+    section: "capabilities",
+    children: [
+      { label: "All services", to: "/capabilities" },
+      { label: "AI Consulting", to: "/services/ai-consulting" },
+      { label: "Business Automation", to: "/services/business-automation" },
+      { label: "SaaS Development", to: "/services/saas-development" },
+      { label: "Cloud Engineering", to: "/services/cloud-engineering" },
+      { label: "Legacy Modernization", to: "/services/legacy-modernization" },
+      { label: "Technology Consulting", to: "/services/technology-consulting" },
+      { label: "AI Enablement", to: "/services/ai-enablement" },
+      { label: "Blockchain Development", to: "/services/blockchain-development" },
+      { label: "San Antonio AI Consulting", to: "/services/ai-consulting-san-antonio" },
+      { label: "AI Research", to: "/ai-research" },
+    ],
+  },
   {
     label: "Industries",
     to: "/industries",
@@ -78,36 +95,42 @@ export const CAPABILITIES = [
     slug: "ai-engineering",
     title: "AI Engineering",
     text: "From LLMs to custom AI solutions that solve real business problems.",
+    details: "Engagements can include AI readiness and implementation planning, enterprise assistants, knowledge-base search, document processing, and AI workflows integrated with existing applications.",
     icon: "brain",
   },
   {
     slug: "cloud-native-systems",
     title: "Cloud-Native Systems",
     text: "Scalable, secure and high-performance infrastructure.",
+    details: "Support spans cloud architecture, application migration, cloud-native services, containerization, CI/CD, monitoring, reliability, and performance optimization across AWS, Azure, and Google Cloud.",
     icon: "cloud",
   },
   {
     slug: "saas-platforms",
     title: "SaaS Platforms",
     text: "End-to-end product development from idea to market.",
+    details: "Build or evolve web applications and SaaS products, from MVP architecture to multitenant systems, API integrations, subscription workflows, security, and ongoing modernization.",
     icon: "layers",
   },
   {
     slug: "consulting-advisory",
     title: "Consulting & Advisory",
     text: "Strategic technology consulting for lasting growth.",
+    details: "Technology advisory can cover AI adoption, enterprise and solution architecture, technical roadmaps, product engineering strategy, and technology or vendor evaluations.",
     icon: "users",
   },
   {
     slug: "mentoring-enablement",
     title: "Mentoring & Enablement",
     text: "Empowering teams through technical mentoring and training.",
+    details: "Practical workshops and technical enablement help teams evaluate AI, identify suitable workflows, build implementation skills, and understand responsible-use considerations.",
     icon: "cap",
   },
   {
     slug: "web3-emerging-tech",
     title: "Web3 & Emerging Tech",
     text: "Exploring decentralized systems and the next generation of the internet.",
+    details: "Project scope may include blockchain applications, smart contracts, token engineering, and multichain integrations, with technical requirements and risks assessed before implementation.",
     icon: "boxes",
   },
 ];
@@ -172,6 +195,8 @@ export const ECOSYSTEM = [
 
 export const INTERESTS = [
   ...CAPABILITIES.map((c) => c.title),
+  "Intelligent Business Automation",
+  "Legacy Systems Modernization",
   "Investor Relations",
   "Other",
 ];
