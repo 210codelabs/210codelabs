@@ -40,7 +40,7 @@ import AdminCalendarPage from "@/pages/admin/AdminCalendarPage";
 import AdminAppointmentsPage from "@/pages/admin/AdminAppointmentsPage";
 import AdminInboxPage from "@/pages/admin/AdminInboxPage";
 import AdminResearchPage from "@/pages/admin/AdminResearchPage";
-import AdminLeadHunterPage from "@/pages/admin/AdminLeadHunterPage";
+import AdminLeadHunterPage from "@/pages/admin/AdminLeadHunterChat";
 import AdminAnalyticsPage from "@/pages/admin/AdminAnalyticsPage";
 import AdminAutomationsPage from "@/pages/admin/AdminAutomationsPage";
 import AdminIntegrationsPage from "@/pages/admin/AdminIntegrationsPage";

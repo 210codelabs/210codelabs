@@ -18,6 +18,11 @@ from typing import List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, EmailStr, Field
 
+try:
+    from .leadhunter import build_router as build_leadhunter_router
+except ImportError:
+    from leadhunter import build_router as build_leadhunter_router
+
 logger = logging.getLogger("210codelabs.crm")
 
 STAGES = ["new", "reviewing", "contacted", "qualified", "discovery", "proposal", "negotiation", "won", "lost"]
@@ -288,6 +293,7 @@ def _public_doc(d: dict) -> dict:
 # ---------- Router builder ----------
 def build_router(db, require_admin_dep) -> APIRouter:
     r = APIRouter(prefix="/api")
+    r.include_router(build_leadhunter_router(db, require_admin_dep))
 
     # ============================================================= PUBLIC ENDPOINTS
     @r.get("/crm/booking/options")
