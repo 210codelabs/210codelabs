@@ -95,6 +95,7 @@ export const Footer = () => (
           {SITE.copyright}
           <Link
             to="/sign-in"
+            rel="nofollow"
             className="footer-admin-link"
             aria-label="Administrator sign-in"
             title="Administrator sign-in"

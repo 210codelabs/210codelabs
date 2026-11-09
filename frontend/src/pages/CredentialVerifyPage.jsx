@@ -21,8 +21,16 @@ export default function CredentialVerifyPage() {
       .catch((e) => setStatus(e === 404 ? "missing" : "error"));
   }, [id]);
 
-  // Verify pages are shareable but intentionally kept out of search results.
-  useSeo({ title: b ? `${b.short} — Verified Badge` : "Credential verification", description: b?.description, noindex: true, image: b ? `${API_BASE}${b.paths.image}` : undefined });
+  // Featured (public-profile) credentials shown on /about are indexable trust signals;
+  // every other issued badge stays shareable but out of search results.
+  const indexable = Boolean(b && b.featured && b.status === "active");
+  useSeo({
+    title: b ? `${b.short} — Verified Badge` : "Credential verification",
+    description: b?.description,
+    noindex: status === "missing" || (status === "ok" && !indexable),
+    image: b ? `${API_BASE}${b.paths.image}` : undefined,
+    canonical: indexable ? `/credentials/${b.id}` : undefined,
+  });
 
   // Always hand out the permanent production URL (the one baked into the badge).
   const pageUrl = b?.urls?.verify_page || (typeof window !== "undefined" ? window.location.href.split("#")[0] : "");

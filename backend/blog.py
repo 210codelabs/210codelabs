@@ -542,8 +542,12 @@ def build_router(db, require_admin) -> APIRouter:
             {"status": "published"},
             {"slug": 1, "updated_at": 1, "published_at": 1, "cover_image_id": 1, "_id": 0},
         ).sort("published_at", -1).to_list(5000)
+        credentials = await db.open_badges.find(
+            {"featured": True, "status": "active"},
+            {"id": 1, "issued_on": 1, "updated_at": 1, "_id": 0},
+        ).sort("issued_on", 1).to_list(200)
         return Response(
-            build_sitemap(_base(request), posts),
+            build_sitemap(_base(request), posts, credentials),
             media_type="application/xml; charset=utf-8",
             headers={"Cache-Control": "public, max-age=3600", "X-Robots-Tag": "noindex"},
         )

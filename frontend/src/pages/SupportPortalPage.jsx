@@ -514,7 +514,7 @@ function DashboardPanel({ user, onSignOut }) {
 
 /* ---------- Page root ---------- */
 export default function SupportPortalPage() {
-  useSeo({ title: "Client Support", description: "210Codelabs client support portal — open tickets, add updates, and track resolution progress.", noindex: true });
+  useSeo({ title: "Client Support", description: "210Codelabs client support portal — open a support request, sign in to track tickets, add updates and follow resolution progress." });
   const api = useSupportApi();
   const [session, setSession] = useState(() => getSupportSession());
   const [ready, setReady] = useState(false);

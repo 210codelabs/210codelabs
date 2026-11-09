@@ -51,7 +51,7 @@ LEGAL_SLUGS = ["privacy-policy", "terms-of-use", "cookie-policy", "accessibility
 
 CORE_ROUTES = [
     "/", "/about", "/capabilities", "/ai-research", "/pricing", "/industries",
-    "/work", "/blog", "/contact", "/book", "/investors",
+    "/work", "/blog", "/contact", "/book", "/investors", "/support",
 ]
 
 # Public read-only API paths that public pages fetch during rendering.
@@ -95,12 +95,20 @@ def _date(value) -> str:
     return str(value)[:10]
 
 
-def build_sitemap(base: str, posts: list[dict]) -> str:
+def build_sitemap(base: str, posts: list[dict], credentials: list[dict] | None = None) -> str:
     rows: list[str] = []
     for path in static_paths():
         rows.append(
             f"<url><loc>{escape(base + path)}</loc>"
             f"<lastmod>{LASTMOD_OVERRIDES.get(path, STATIC_LASTMOD)}</lastmod></url>"
+        )
+    # Featured, active credentials (public founder profile shown on /about) are indexable.
+    for c in credentials or []:
+        if not c.get("id"):
+            continue
+        rows.append(
+            f"<url><loc>{escape(base + '/credentials/' + str(c['id']))}</loc>"
+            f"<lastmod>{_date(c.get('updated_at') or c.get('issued_on'))}</lastmod></url>"
         )
     for p in posts:
         slug = p.get("slug")

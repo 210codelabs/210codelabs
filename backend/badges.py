@@ -278,6 +278,7 @@ def public_view(b: dict) -> dict:
         "recipient": b["recipient_name"], "issuer": "210Codelabs Corporation", "issued_on": b["issued_on"][:10],
         "description": b["description"], "disclaimer": b["disclaimer"], "facts": b.get("facts") or [],
         "tags": b.get("tags") or [], "status": b.get("status", "active"),
+        "featured": bool(b.get("featured")),
         "revocation_reason": b.get("revocation_reason") if b.get("status") == "revoked" else None,
         "urls": urls(b), "paths": paths(b), "linkedin_add_url": linkedin_add_url(b),
     }
